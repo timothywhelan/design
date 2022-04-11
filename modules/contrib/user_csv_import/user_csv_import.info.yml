@@ -1,0 +1,14 @@
+name: User CSV import
+description: Import users into Drupal from CSV file upload
+core: 8.x
+core_version_requirement: ^8 || ^9
+type: module
+package: User
+
+dependencies:
+  - drupal:user
+
+# Information added by Drupal.org packaging script on 2022-02-28
+version: '2.0.2'
+project: 'user_csv_import'
+datestamp: 1646055683

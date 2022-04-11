@@ -1,0 +1,13 @@
+name: GT Tools
+description: Miscellaneous functionality for GT sites
+package: GT
+type: module
+core_version_requirement: ^9
+version: "3.0.1"
+project: "GT Tools"
+project status url: http://repo.drupal.gatech.edu/release_history/gt_tools/3.x
+dependencies:
+  - block
+  - field_group
+  - node
+  - search
