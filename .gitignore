@@ -27,6 +27,8 @@ index.html
 /modules/custom/*
 test.html
 video.html
+/old-portfolio/*/*
+
 
 *.zip
 .DS_Store
