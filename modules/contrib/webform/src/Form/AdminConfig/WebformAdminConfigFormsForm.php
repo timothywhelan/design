@@ -102,6 +102,8 @@ class WebformAdminConfigFormsForm extends WebformAdminConfigBaseForm {
         '30' => '30',
         '40' => '40',
         '50' => '50',
+        '75' => '75',
+        '100' => '100',
       ],
       '#parents' => ['form', 'limit'],
       '#default_value' => $config->get('form.limit') ?: 50,
@@ -136,6 +138,13 @@ class WebformAdminConfigFormsForm extends WebformAdminConfigBaseForm {
       '#title' => $this->t('Form URL path settings'),
       '#open' => TRUE,
       '#tree' => TRUE,
+    ];
+    $form['page_settings']['default_page'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Allow users to post submissions from a dedicated URL for all webform'),
+      '#description' => $this->t('If unchecked, all webform must added to your website using a node, block, or paragraph.'),
+      '#return_value' => TRUE,
+      '#default_value' => $settings['default_page'],
     ];
     $form['page_settings']['default_page_base_path'] = [
       '#type' => 'textfield',
@@ -172,6 +181,12 @@ class WebformAdminConfigFormsForm extends WebformAdminConfigBaseForm {
         WebformInterface::STATUS_CLOSED => $this->t('Closed'),
       ],
       '#options_display' => 'side_by_side',
+    ];
+    $form['form_settings']['default_categories'] = [
+      '#type' => 'webform_multiple',
+      '#title' => $this->t('Default webform categories'),
+      '#description' => $this->t('Enter default webform categories that will always be available when users are creating and managing a form.'),
+      '#default_value' => $settings['default_categories'],
     ];
     $form['form_settings']['default_form_open_message'] = [
       '#type' => 'webform_html_editor',
@@ -449,6 +464,13 @@ class WebformAdminConfigFormsForm extends WebformAdminConfigBaseForm {
       '#description' => $this->t('A list of classes that will be provided in the "Confirmation back link CSS classes" dropdown. Enter one or more classes on each line. These styles should be available in your theme\'s CSS file.'),
       '#default_value' => $settings['confirmation_back_classes'],
     ];
+    $form['confirmation_settings']['default_confirmation_noindex'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Default confirmation robots noindex'),
+      '#description' => $this->t('If checked, a meta tag robots noindex directive  will be added to the confirmation page of all webforms.'),
+      '#return_value' => TRUE,
+      '#default_value' => $settings['default_confirmation_noindex'],
+    ];
     $form['confirmation_settings']['token_tree_link'] = $this->tokenManager->buildTreeElement();
 
     // Ajax settings.
@@ -625,29 +647,28 @@ class WebformAdminConfigFormsForm extends WebformAdminConfigBaseForm {
     ];
     // Display warning when text formats do not support adding the class
     // attribute to links.
-    if ($this->moduleHandler->moduleExists('filter')) {
-      /** @var \Drupal\filter\FilterFormatInterface[] $filter_formats */
-      $filter_formats = FilterFormat::loadMultiple();
-      $dialog_not_allowed = [];
-      foreach ($filter_formats as $filter_format) {
-        $html_restrictions = $filter_format->getHtmlRestrictions();
-        if ($html_restrictions && isset($html_restrictions['allowed']) && isset($html_restrictions['allowed']['a']) && !isset($html_restrictions['allowed']['a']['class'])) {
-          $dialog_not_allowed[] = $filter_format->label();
-        }
-      }
-      if ($dialog_not_allowed) {
-        $t_args = [
-          '@labels' => WebformArrayHelper::toString($dialog_not_allowed),
-          '@tag' => '<a href hreflang class>',
-          ':href' => Url::fromRoute('filter.admin_overview')->toString(),
-        ];
-        $form['dialog_settings']['dialog_messages']['filter_formats_message'] = [
-          '#type' => 'webform_message',
-          '#message_message' => $this->t('<strong>IMPORTANT:</strong> To insert dialog links using the @labels <a href=":href">text formats</a> the @tag must be added to the allowed HTML tags.', $t_args),
-          '#message_type' => 'warning',
-        ];
+    /** @var \Drupal\filter\FilterFormatInterface[] $filter_formats */
+    $filter_formats = FilterFormat::loadMultiple();
+    $dialog_not_allowed = [];
+    foreach ($filter_formats as $filter_format) {
+      $html_restrictions = $filter_format->getHtmlRestrictions();
+      if ($html_restrictions && isset($html_restrictions['allowed']) && isset($html_restrictions['allowed']['a']) && !isset($html_restrictions['allowed']['a']['class'])) {
+        $dialog_not_allowed[] = $filter_format->label();
       }
     }
+    if ($dialog_not_allowed) {
+      $t_args = [
+        '@labels' => WebformArrayHelper::toString($dialog_not_allowed),
+        '@tag' => '<a href hreflang class>',
+        ':href' => Url::fromRoute('filter.admin_overview')->toString(),
+      ];
+      $form['dialog_settings']['dialog_messages']['filter_formats_message'] = [
+        '#type' => 'webform_message',
+        '#message_message' => $this->t('<strong>IMPORTANT:</strong> To insert dialog links using the @labels <a href=":href">text formats</a> the @tag must be added to the allowed HTML tags.', $t_args),
+        '#message_type' => 'warning',
+      ];
+    }
+
     // Display install link module message.
     if (!$this->moduleHandler->moduleExists('editor_advanced_link') && !$this->moduleHandler->moduleExists('menu_link_attributes')) {
       $t_args = [
@@ -731,8 +752,7 @@ class WebformAdminConfigFormsForm extends WebformAdminConfigBaseForm {
     $config->set('third_party_settings', $form_state->getValue('third_party_settings') ?: []);
     parent::submitForm($form, $form_state);
 
-    /* Update paths */
-
+    // Update paths.
     if ($update_paths) {
       /** @var \Drupal\webform\WebformInterface[] $webforms */
       $webforms = Webform::loadMultiple();

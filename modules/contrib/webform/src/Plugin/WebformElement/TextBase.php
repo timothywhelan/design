@@ -224,8 +224,6 @@ abstract class TextBase extends WebformElementBase {
     $t_args = [
       '@type' => ($type === 'character') ? t('characters') : t('words'),
       '@name' => $element['#title'],
-      '%max' => $max,
-      '%min' => $min,
     ];
 
     // Get character/word count.
@@ -241,9 +239,11 @@ abstract class TextBase extends WebformElementBase {
 
     // Validate character/word count.
     if ($max && $length > $max) {
+      $t_args['%max'] = $max;
       $form_state->setError($element, t('@name cannot be longer than %max @type but is currently %length @type long.', $t_args));
     }
     elseif ($min && $length < $min) {
+      $t_args['%min'] = $min;
       $form_state->setError($element, t('@name must be longer than %min @type but is currently %length @type long.', $t_args));
     }
   }
@@ -433,11 +433,11 @@ abstract class TextBase extends WebformElementBase {
       ],
     ];
 
-    // Get input masks.
-    $modules = $this->moduleHandler->getImplementations('webform_element_input_masks');
-    foreach ($modules as $module) {
-      $input_masks += $this->moduleHandler->invoke($module, 'webform_element_input_masks');
-    }
+    // Get input masks, use ModuleHandler::invokeAllWith() to ensure that
+    // numeric keys are not lost.
+    $this->moduleHandler->invokeAllWith('webform_element_input_masks', function (callable $hook, string $module_name) use (&$input_masks) {
+      $input_masks += $hook();
+    });
 
     // Alter input masks.
     $this->moduleHandler->alter('webform_element_input_masks', $input_masks);

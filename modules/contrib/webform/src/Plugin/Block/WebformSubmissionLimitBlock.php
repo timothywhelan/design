@@ -180,7 +180,7 @@ class WebformSubmissionLimitBlock extends BlockBase implements ContainerFactoryP
       '#open' => $this->configuration['webform_id'] || $this->configuration['entity_type'],
     ];
     $form['advanced']['webform_id'] = [
-      '#title' => $this->t('Webform'),
+      '#title' => $this->t('Webform', [], ['context' => 'form']),
       '#type' => 'entity_autocomplete',
       '#target_type' => 'webform',
       '#default_value' => ($this->configuration['webform_id']) ? $this->entityTypeManager->getStorage('webform')->load($this->configuration['webform_id']) : NULL,
@@ -518,7 +518,7 @@ class WebformSubmissionLimitBlock extends BlockBase implements ContainerFactoryP
     $token_manager = \Drupal::service('webform.token_manager');
 
     // Get token name and descriptions.
-    module_load_include('inc', 'webform', 'webform.tokens');
+    \Drupal::moduleHandler()->loadInclude('webform', 'tokens.inc');
     $token_info = webform_token_info();
     $tokens = $token_info['tokens']['webform_submission'];
 

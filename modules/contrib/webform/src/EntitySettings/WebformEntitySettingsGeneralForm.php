@@ -9,6 +9,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Url;
 use Drupal\webform\Plugin\WebformHandlerInterface;
+use Drupal\webform\Utility\WebformElementHelper;
 use Drupal\webform\WebformMessageManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -89,13 +90,15 @@ class WebformEntitySettingsGeneralForm extends WebformEntitySettingsBaseForm {
     ];
     /** @var \Drupal\webform\WebformEntityStorageInterface $webform_storage */
     $webform_storage = $this->entityTypeManager->getStorage('webform');
-    $form['general_settings']['category'] = [
+    $form['general_settings']['categories'] = [
       '#type' => 'webform_select_other',
-      '#title' => $this->t('Category'),
-      '#options' => $webform_storage->getCategories(),
-      '#empty_option' => $this->t('- None -'),
-      '#default_value' => $webform->get('category'),
+      '#title' => $this->t('Categories'),
+      '#options' => $webform_storage->getCategories(NULL, TRUE),
+      '#multiple' => TRUE,
+      '#select2' => TRUE,
+      '#default_value' => $webform->get('categories'),
     ];
+    WebformElementHelper::process($form['general_settings']['categories']);
     $form['general_settings']['template'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Allow this webform to be used as a template'),
@@ -167,6 +170,7 @@ class WebformEntitySettingsGeneralForm extends WebformEntitySettingsBaseForm {
       '#type' => 'details',
       '#title' => $this->t('URL path settings'),
       '#open' => TRUE,
+      '#access' => ($this->config('webform.settings')->get('settings.default_page') !== FALSE),
     ];
     $default_page_base_path = $default_settings['default_page_base_path'];
     if ($default_page_base_path) {
@@ -560,7 +564,7 @@ class WebformEntitySettingsGeneralForm extends WebformEntitySettingsBaseForm {
       $values['id'],
       $values['title'],
       $values['description'],
-      $values['category'],
+      $values['categories'],
       $values['weight'],
       $values['template'],
       $values['uid']

@@ -3,9 +3,9 @@
 namespace Drupal\Tests\webform\Functional\Composite;
 
 use Drupal\file\Entity\File;
+use Drupal\Tests\webform\Functional\Element\WebformElementManagedFileTestBase;
 use Drupal\webform\Entity\Webform;
 use Drupal\webform\Entity\WebformSubmission;
-use Drupal\Tests\webform\Functional\Element\WebformElementManagedFileTestBase;
 
 /**
  * Tests for custom composite element.
@@ -60,7 +60,7 @@ class WebformCompositeCustomFileTest extends WebformElementManagedFileTestBase {
 
     // Check the composite file is attached to the email.
     $assert_session->responseContains('<label>Attachments</label>');
-    $assert_session->responseContains('<strong><a href="' . file_create_url($file->getFileUri()) . '">' . $file->getFileName() . '</a></strong> (text/plain) - 1 KB');
+    $assert_session->responseContains('<strong><a href="' . $file->createFileUrl(FALSE) . '">' . $file->getFileName() . '</a></strong> (text/plain) - 1 KB');
 
     // Check file permanent.
     $this->assertTrue($file->isPermanent());

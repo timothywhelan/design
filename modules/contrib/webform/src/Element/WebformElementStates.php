@@ -5,10 +5,10 @@ namespace Drupal\webform\Element;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\NestedArray;
-use Drupal\Core\Form\OptGroup;
-use Drupal\Core\Serialization\Yaml;
-use Drupal\Core\Render\Element\FormElement;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Form\OptGroup;
+use Drupal\Core\Render\Element\FormElement;
+use Drupal\Core\Serialization\Yaml;
 use Drupal\webform\Utility\WebformAccessibilityHelper;
 use Drupal\webform\Utility\WebformArrayHelper;
 use Drupal\webform\Utility\WebformYaml;
@@ -1078,8 +1078,8 @@ class WebformElementStates extends FormElement {
         'optional' => t('Optional'),
       ],
       $value_optgroup => [
-        'checked' => t('Checked'),
-        'unchecked' => t('Unchecked'),
+        'checked' => t('Checked', [], ['context' => 'Add check mark']),
+        'unchecked' => t('Unchecked', [], ['context' => 'Remove check mark']),
       ],
     ];
   }
@@ -1094,8 +1094,8 @@ class WebformElementStates extends FormElement {
     return [
       'empty' => t('Empty'),
       'filled' => t('Filled'),
-      'checked' => t('Checked'),
-      'unchecked' => t('Unchecked'),
+      'checked' => t('Checked', [], ['context' => 'Add check mark']),
+      'unchecked' => t('Unchecked', [], ['context' => 'Remove check mark']),
       'value' => t('Value is'),
       '!value' => t('Value is not'),
       'pattern' => t('Pattern'),

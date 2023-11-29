@@ -5,27 +5,27 @@
  * Archived Webform update hooks.
  */
 
-use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Component\Uuid\Php as Uuid;
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Database\Database;
 use Drupal\Core\Database\SchemaObjectExistsException;
 use Drupal\Core\Field\BaseFieldDefinition;
-use Drupal\Core\Database\Database;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Url;
+use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\views\Entity\View;
 use Drupal\webform\Element\WebformSignature as WebformSignatureElement;
 use Drupal\webform\Entity\Webform;
 use Drupal\webform\Entity\WebformOptions;
 use Drupal\webform\Entity\WebformSubmission;
 use Drupal\webform\Plugin\WebformHandler\EmailWebformHandler;
-use Drupal\webform\WebformInterface;
 use Drupal\webform\Plugin\WebformHandler\RemotePostWebformHandler;
 use Drupal\webform\Utility\WebformArrayHelper;
 use Drupal\webform\Utility\WebformFormHelper;
 use Drupal\webform\Utility\WebformOptionsHelper;
 use Drupal\webform\Utility\WebformReflectionHelper;
 use Drupal\webform\Utility\WebformYaml;
+use Drupal\webform\WebformInterface;
 
 /**
  * Implements hook_update_dependencies().
@@ -1010,7 +1010,7 @@ function webform_update_8046() {
       ->condition('collection', $collections, 'IN');
     $result = $query->execute();
     while ($record = $result->fetchAssoc()) {
-      $data = unserialize($record['data']);
+      $data = unserialize($record['data'], ['allowed_classes' => FALSE]);
       $data = _webform_update_8046_convert_data($data);
       \Drupal::database()->update($table_name)
         ->fields(['data' => serialize($data)])
@@ -2829,6 +2829,7 @@ function webform_update_8153() {
   if (\Drupal::entityTypeManager()->hasDefinition('path_alias')) {
     $storage = \Drupal::entityTypeManager()->getStorage('path_alias');
     $ids = $storage->getQuery()
+      ->accessCheck(FALSE)
       ->condition('path', '/webform/', 'STARTS_WITH')
       ->execute();
 
@@ -3275,7 +3276,7 @@ function webform_update_8175() {
       ->condition('name', 'webform.settings');
     $result = $query->execute();
     while ($record = $result->fetchAssoc()) {
-      $data = unserialize($record['data']);
+      $data = unserialize($record['data'], ['allowed_classes' => FALSE]);
       $data['mail']['default_subject'] = str_replace('[webform_submission:source-entity]', '[webform_submission:source-title]', $data['mail']['default_subject']);
       \Drupal::database()->update($table_name)
         ->fields(['data' => serialize($data)])
@@ -4301,4 +4302,11 @@ function webform_update_8636() {
   }
 
   return implode(PHP_EOL, $messages);
+}
+
+/**
+ * Issue #3249092: Disable 'Allow users to post submissions from a dedicated URL' for all webforms.
+ */
+function webform_update_8637() {
+  _webform_update_admin_settings();
 }

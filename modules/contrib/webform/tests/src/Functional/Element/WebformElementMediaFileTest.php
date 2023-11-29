@@ -17,7 +17,7 @@ class WebformElementMediaFileTest extends WebformElementManagedFileTestBase {
    *
    * @var array
    */
-  public static $modules = ['file', 'image', 'webform'];
+  protected static $modules = ['file', 'image', 'webform'];
 
   /**
    * Webforms to load.
@@ -119,11 +119,12 @@ class WebformElementMediaFileTest extends WebformElementManagedFileTestBase {
 
     // Check managed file formatting.
     $this->drupalGet('/admin/structure/webform/manage/test_element_managed_file/submission/' . $sid);
+    $assert_session = $this->assertSession();
     if ($type === 'multiple') {
       $assert_session->responseContains('<label>managed_file_multiple</label>');
       $assert_session->responseContains('<div class="item-list">');
     }
-    $assert_session->responseContains('<span class="file file--mime-text-plain file--text"> <a href="' . file_create_url($file->getFileUri()) . '" type="text/plain; length=' . $file->getSize() . '">' . $file->getFilename() . '</a></span>');
+    $assert_session->responseContains('<span class="file file--mime-text-plain file--text"> <a href="' . $file->createFileUrl(FALSE) . '" type="text/plain; length=' . $file->getSize() . '">' . $file->getFilename() . '</a></span>');
 
     // Remove the uploaded file.
     $this->drupalGet('/admin/structure/webform/manage/test_element_managed_file/submission/' . $sid . '/edit');
@@ -158,7 +159,7 @@ class WebformElementMediaFileTest extends WebformElementManagedFileTestBase {
     $this->assertEquals($submission->getElementData($key), $second, 'Test new file was upload to the current submission');
 
     // Check that test file was deleted from the disk and database.
-    $this->assertFileNotExists($file->getFileUri(), 'Test file deleted from disk');
+    $this->assertFileDoesNotExist($file->getFileUri(), 'Test file deleted from disk');
     $this->assertEquals(0, \Drupal::database()->query('SELECT COUNT(fid) AS total FROM {file_managed} WHERE fid = :fid', [':fid' => $fid])->fetchField(), 'Test file 0 deleted from database');
     $this->assertEquals(0, \Drupal::database()->query('SELECT COUNT(fid) AS total FROM {file_usage} WHERE fid = :fid', [':fid' => $fid])->fetchField(), 'Test file 0 deleted from database');
 
@@ -169,7 +170,7 @@ class WebformElementMediaFileTest extends WebformElementManagedFileTestBase {
     $submission->delete();
 
     // Check that test file 1 was deleted from the disk and database.
-    $this->assertFileNotExists($new_file->getFileUri(), 'Test new file deleted from disk');
+    $this->assertFileDoesNotExist($new_file->getFileUri(), 'Test new file deleted from disk');
     $this->assertEquals(0, \Drupal::database()->query('SELECT COUNT(fid) AS total FROM {file_managed} WHERE fid = :fid', [':fid' => $new_fid])->fetchField(), 'Test new file deleted from database');
   }
 

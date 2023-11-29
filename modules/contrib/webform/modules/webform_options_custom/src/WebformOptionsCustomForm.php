@@ -2,8 +2,8 @@
 
 namespace Drupal\webform_options_custom;
 
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityForm;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\webform\Element\WebformMessage;
 use Drupal\webform\Utility\WebformDialogHelper;
@@ -346,7 +346,7 @@ class WebformOptionsCustomForm extends EntityForm {
     // Build custom options specific Twig help.
     // @see \Drupal\webform\Twig\WebformTwigExtension::buildTwigHelp
     $t_args = [
-      ':twig_href' => 'https://twig.sensiolabs.org/',
+      ':twig_href' => 'https://twig.symfony.com/',
       ':drupal_href' => 'https://www.drupal.org/docs/8/theming/twig',
     ];
     $build = [];

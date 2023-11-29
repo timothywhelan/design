@@ -22,7 +22,7 @@ class ToolbarController extends ControllerBase implements TrustedCallbackInterfa
    * @return \Drupal\Core\Ajax\AjaxResponse
    */
   public function subtreesAjax() {
-    [$subtrees, $cacheability] = toolbar_get_rendered_subtrees();
+    [$subtrees] = toolbar_get_rendered_subtrees();
     $response = new AjaxResponse();
     $response->addCommand(new SetSubtreesCommand($subtrees));
 
@@ -108,7 +108,7 @@ class ToolbarController extends ControllerBase implements TrustedCallbackInterfa
     $tree = $menu_tree->transform($tree, $manipulators);
     $subtrees = [];
     // Calculated the combined cacheability of all subtrees.
-    $cacheability = new CacheableMetadata();
+    $cacheability = CacheableMetadata::createFromRenderArray($data);
     foreach ($tree as $element) {
       /** @var \Drupal\Core\Menu\MenuLinkInterface $link */
       $link = $element->link;

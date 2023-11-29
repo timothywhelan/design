@@ -2,9 +2,9 @@
  * @file
  * CKEditor 5 implementation of {@link Drupal.editors} API.
  */
-/* global CKEditor5 */
+
 ((Drupal, debounce, CKEditor5, $, once) => {
-  // CKEditor 5 is incompatible with IE11. When IE11 is detected, the CKEditor5
+  // CKEditor 5 is incompatible with IE11. When IE11 is detected, the CKEditor 5
   // variable is null. In those instances, exit early since CKEditor 5 is not
   // loaded.
   if (!CKEditor5) {
@@ -12,7 +12,7 @@
   }
 
   /**
-   * The CKEDITOR instances.
+   * The CKEditor 5 instances.
    *
    * @type {Map}
    */
@@ -32,6 +32,17 @@
    */
   const required = new Set();
 
+  /**
+   * Get the value of the (deep) property on name from scope.
+   *
+   * @param {object} scope
+   *  Object used to search for the function.
+   * @param {string} name
+   *  The path to access in the scope object.
+   *
+   * @return {null|function}
+   *  The corresponding function from the scope object.
+   */
   function findFunc(scope, name) {
     if (!scope) {
       return null;
@@ -44,6 +55,16 @@
     return typeof scope[parts[0]] === 'function' ? scope[parts[0]] : null;
   }
 
+  /**
+   * Transform a config key in a callback function or execute the function
+   * to dynamically build the configuration entry.
+   *
+   * @param {object} config
+   *  The plugin configuration object.
+   *
+   * @return {null|function|*}
+   *  Resulting configuration value.
+   */
   function buildFunc(config) {
     const { func } = config;
     // Assuming a global object.
@@ -153,9 +174,9 @@
   const getElementId = (element) => element.getAttribute('data-ckeditor5-id');
 
   /**
-   * Select CKEditor5 plugin classes to include.
+   * Select CKEditor 5 plugin classes to include.
    *
-   * Found in the CKEditor5 global js object as {package.Class}.
+   * Found in the CKEditor 5 global JavaScript object as {package.Class}.
    *
    * @param {Array} plugins
    *  List of package and Class name of plugins
@@ -305,7 +326,7 @@
       // prefixed versions of existing css in `existingCss`.
       const addedCss = [
         `${prefix} .ck.ck-content {display:block;min-height:5rem;}`,
-        `${prefix} .ck.ck-content * {display:initial;background:initial;color:initial;padding:initial;}`,
+        `${prefix} .ck.ck-content * {display:revert;background:revert;color:initial;padding:revert;}`,
         `${prefix} .ck.ck-content li {display:list-item}`,
         `${prefix} .ck.ck-content ol li {list-style-type: decimal}`,
         `${prefix} .ck[contenteditable], ${prefix} .ck[contenteditable] * {-webkit-user-modify: read-write;-moz-user-modify: read-write;}`,
@@ -365,7 +386,11 @@
   }
 
   /**
+   * Integration of CKEditor 5 with the Drupal editor API.
+   *
    * @namespace
+   *
+   * @see Drupal.editorAttach
    */
   Drupal.editors.ckeditor5 = {
     /**
@@ -398,7 +423,7 @@
           // Save a reference to the initialized instance.
           Drupal.CKEditor5Instances.set(id, editor);
 
-          // CKEditor4 had a feature to remove the required attribute
+          // CKEditor 4 had a feature to remove the required attribute
           // see: https://www.drupal.org/project/drupal/issues/1954968
           if (element.hasAttribute('required')) {
             required.add(id);
@@ -445,6 +470,10 @@
         })
         .catch((error) => {
           // eslint-disable-next-line no-console
+          console.info(
+            'Debugging can be done with an unminified version of CKEditor by installing from the source file. Consult documentation at https://www.drupal.org/node/3258901',
+          );
+          // eslint-disable-next-line no-console
           console.error(error);
         });
     },
@@ -472,38 +501,11 @@
         editor.updateSourceElement();
       } else {
         element.removeAttribute('contentEditable');
-
-        // Prepare variables that will be used when discarding Quickedit changes.
-        let textElement = null;
-        let originalValue = null;
-        const usingQuickEdit = (((Drupal || {}).quickedit || {}).editors || {})
-          .editor;
-        if (usingQuickEdit) {
-          // The revert() function in QuickEdit's text editor does not work with
-          // CKEditor 5, as it is triggered before CKEditor 5 is fully
-          // destroyed. This function is overridden so the functionality it
-          // provides can happen after the CKEditor destroy() promise is
-          // fulfilled.
-          // This pulls the necessary values from the QuickEdit Backbone Model
-          // before it is destroyed, so they can be used by
-          // `editor.destroy().then()` to perform the expected revert.
-          Drupal.quickedit.editors.editor.prototype.revert =
-            function revertQuickeditChanges() {
-              textElement = this.$textElement[0];
-              originalValue = this.model.get('originalValue');
-            };
-        }
-
-        editor
+        // Return the promise to allow external code to queue code to
+        // execute after the destroy is complete.
+        return editor
           .destroy()
           .then(() => {
-            // If textElement and originalValue are not null, a QuickEdit
-            // revert has been requested. Perform the revert here as it
-            // can't happen until the CKEditor instance is destroyed.
-            if (textElement && originalValue) {
-              textElement.innerHTML = originalValue;
-            }
-
             // Clean up stored references.
             Drupal.CKEditor5Instances.delete(id);
             callbacks.delete(id);
@@ -520,7 +522,7 @@
     },
 
     /**
-     * Registers a callback which CKEditor5 will call on change:data event.
+     * Registers a callback which CKEditor 5 will call on change:data event.
      *
      * @param {HTMLElement} element
      *   The element where the change occurred.
@@ -582,6 +584,11 @@
     },
   };
 
+  /**
+   * Public API for Drupal CKEditor 5 integration.
+   *
+   * @namespace
+   */
   Drupal.ckeditor5 = {
     /**
      * Variable storing the current dialog's save callback.
@@ -590,6 +597,19 @@
      */
     saveCallback: null,
 
+    /**
+     * Open a dialog for a Drupal-based plugin.
+     *
+     * This dynamically loads jQuery UI (if necessary) using the Drupal AJAX
+     * framework, then opens a dialog at the specified Drupal path.
+     *
+     * @param {string} url
+     *   The URL that contains the contents of the dialog.
+     * @param {function} saveCallback
+     *   A function to be called upon saving the dialog.
+     * @param {object} dialogSettings
+     *   An object containing settings to be passed to the jQuery UI.
+     */
     openDialog(url, saveCallback, dialogSettings) {
       // Add a consistent dialog class.
       const classes = dialogSettings.dialogClass
@@ -601,29 +621,17 @@
         window.matchMedia('(min-width: 600px)').matches;
       dialogSettings.width = 'auto';
 
-      const $content = $(
-        `<div class="ckeditor5-dialog-loading"><span style="top: -40px;" class="ckeditor5-dialog-loading-link">${Drupal.t(
-          'Loading...',
-        )}</span></div>`,
-      );
-      $content.appendTo($('body'));
-
       const ckeditorAjaxDialog = Drupal.ajax({
         dialog: dialogSettings,
         dialogType: 'modal',
         selector: '.ckeditor5-dialog-loading-link',
         url,
-        progress: { type: 'throbber' },
+        progress: { type: 'fullscreen' },
         submit: {
           editor_object: {},
         },
       });
       ckeditorAjaxDialog.execute();
-
-      // After a short delay, show "Loading…" message.
-      window.setTimeout(() => {
-        $content.find('span').animate({ top: '0px' });
-      }, 1000);
 
       // Store the save callback to be executed when this dialog is closed.
       Drupal.ckeditor5.saveCallback = saveCallback;

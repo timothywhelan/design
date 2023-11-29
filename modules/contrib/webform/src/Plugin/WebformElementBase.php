@@ -27,6 +27,7 @@ use Drupal\webform\Plugin\WebformElement\Checkboxes;
 use Drupal\webform\Plugin\WebformElement\ContainerBase;
 use Drupal\webform\Plugin\WebformElement\Details;
 use Drupal\webform\Plugin\WebformElement\WebformCompositeBase;
+use Drupal\webform\Plugin\WebformElement\WebformEmailConfirm;
 use Drupal\webform\Twig\WebformTwigExtension;
 use Drupal\webform\Utility\WebformArrayHelper;
 use Drupal\webform\Utility\WebformDialogHelper;
@@ -35,7 +36,6 @@ use Drupal\webform\Utility\WebformFormHelper;
 use Drupal\webform\Utility\WebformHtmlHelper;
 use Drupal\webform\Utility\WebformOptionsHelper;
 use Drupal\webform\Utility\WebformReflectionHelper;
-use Drupal\webform\Utility\WebformXss;
 use Drupal\webform\WebformInterface;
 use Drupal\webform\WebformSubmissionConditionsValidator;
 use Drupal\webform\WebformSubmissionInterface;
@@ -231,7 +231,7 @@ class WebformElementBase extends PluginBase implements WebformElementInterface, 
       'multiple__add_more_input' => TRUE,
       'multiple__add_more_input_label' => (string) $this->t('more items'),
       'multiple__item_label' => (string) $this->t('item'),
-      'multiple__no_items_message' => (string) $this->t('No items entered. Please add items below.'),
+      'multiple__no_items_message' => '<p>' . $this->t('No items entered. Please add items below.') . '</p>',
       'multiple__sorting' => TRUE,
       'multiple__operations' => TRUE,
       'multiple__add' => TRUE,
@@ -739,7 +739,9 @@ class WebformElementBase extends PluginBase implements WebformElementInterface, 
     // Add inline title display support.
     // Inline fieldset layout is handled via webform_preprocess_fieldset().
     // @see webform_preprocess_fieldset()
-    if (isset($element['#title_display']) && $element['#title_display'] === 'inline') {
+    if (isset($element['#title_display'])
+      && $element['#title_display'] === 'inline'
+      && !$this instanceof WebformEmailConfirm) {
       // Store reference to unset #title_display.
       $element['#_title_display'] = $element['#title_display'];
       unset($element['#title_display']);
@@ -753,7 +755,9 @@ class WebformElementBase extends PluginBase implements WebformElementInterface, 
     }
 
     // Add tooltip description display support.
-    if (isset($element['#description_display']) && $element['#description_display'] === 'tooltip') {
+    if (isset($element['#description_display'])
+      && $element['#description_display'] === 'tooltip'
+      && !empty($element['#description'])) {
       $element['#description_display'] = 'invisible';
       $element[$attributes_property]['class'][] = 'js-webform-tooltip-element';
       $element[$attributes_property]['class'][] = 'webform-tooltip-element';
@@ -778,6 +782,11 @@ class WebformElementBase extends PluginBase implements WebformElementInterface, 
     $this->setElementDefaultCallback($element, 'element_validate');
     $this->prepareElementValidateCallbacks($element, $webform_submission);
 
+    // Replace tokens for all properties.
+    if ($webform_submission) {
+      $this->replaceTokens($element, $webform_submission);
+    }
+
     if ($this->isInput($element)) {
       // Handle #readonly support.
       // @see \Drupal\Core\Form\FormBuilder::handleInputElement
@@ -799,13 +808,8 @@ class WebformElementBase extends PluginBase implements WebformElementInterface, 
       // Convert #title to HTML markup so that it can displayed properly
       // in error messages.
       if (isset($element['#title'])) {
-        $element['#title'] = WebformHtmlHelper::toHtmlMarkup($element['#title'], WebformXss::getHtmlTagList());
+        $element['#title'] = WebformHtmlHelper::toHtmlMarkup($element['#title'], $element['#allowed_tags']);
       }
-    }
-
-    // Replace tokens for all properties.
-    if ($webform_submission) {
-      $this->replaceTokens($element, $webform_submission);
     }
 
     // Check markup properties after token replacement just-in-case markup
@@ -908,13 +912,10 @@ class WebformElementBase extends PluginBase implements WebformElementInterface, 
       'webform' => $webform,
       'webform_submission' => $webform_submission,
     ];
-    $modules = \Drupal::moduleHandler()
-      ->getImplementations('webform_element_access');
-    foreach ($modules as $module) {
-      $hook = $module . '_webform_element_access';
+    \Drupal::moduleHandler()->invokeAllWith('webform_element_access', function (callable $hook, string $module) use (&$access_result, $operation, $element, $account, $context) {
       $hook_result = $hook($operation, $element, $account, $context);
       $access_result = $access_result->orIf($hook_result);
-    }
+    });
 
     // Grant access as provided by webform, webform handler(s) and/or
     // hook_webform_element_access() implementation.
@@ -1398,11 +1399,7 @@ class WebformElementBase extends PluginBase implements WebformElementInterface, 
     $value = $this->getValue($element, $webform_submission, $options);
 
     // Get items.
-    $items = [];
-    $item_function = 'format' . $type . 'Item';
-    foreach (array_keys($value) as $delta) {
-      $items[] = $this->$item_function($element, $webform_submission, ['delta' => $delta] + $options);
-    }
+    $items = $this->getItems($type, $element, $webform_submission, $options);
 
     // Get template.
     $template = trim($element['#format_items_' . $name]);
@@ -1431,17 +1428,7 @@ class WebformElementBase extends PluginBase implements WebformElementInterface, 
    *   The element's items as HTML.
    */
   protected function formatHtmlItems(array &$element, WebformSubmissionInterface $webform_submission, array $options = []) {
-    $value = $this->getValue($element, $webform_submission, $options);
-
-    // Get items.
-    $items = [];
-    foreach (array_keys($value) as $delta) {
-      $item = $this->formatHtmlItem($element, $webform_submission, ['delta' => $delta] + $options);
-      if ($item) {
-        $items[] = $item;
-      }
-    }
-
+    $items = $this->getItems('Html', $element, $webform_submission, $options);
     if (empty($items)) {
       return [];
     }
@@ -1464,7 +1451,7 @@ class WebformElementBase extends PluginBase implements WebformElementInterface, 
         }
 
         $build = [];
-        foreach ($items as $index => &$item) {
+        foreach ($items as $index => $item) {
           $build[] = (is_array($item)) ? $item : ['#markup' => $item];
           if ($total === 2 && $index === 0) {
             $build[] = ['#markup' => ' ' . $this->t('and') . ' '];
@@ -1498,7 +1485,7 @@ class WebformElementBase extends PluginBase implements WebformElementInterface, 
         $total = count($items);
 
         $build = [];
-        foreach ($items as $index => &$item) {
+        foreach ($items as $index => $item) {
           $build[] = (is_array($item)) ? $item : ['#markup' => $item];
           if ($index !== ($total - 1)) {
             $build[] = ['#markup' => $delimiter];
@@ -1522,17 +1509,7 @@ class WebformElementBase extends PluginBase implements WebformElementInterface, 
    *   The element's items as text.
    */
   protected function formatTextItems(array &$element, WebformSubmissionInterface $webform_submission, array $options = []) {
-    $value = $this->getValue($element, $webform_submission, $options);
-
-    // Get items.
-    $items = [];
-    foreach (array_keys($value) as $delta) {
-      $item = $this->formatTextItem($element, $webform_submission, ['delta' => $delta] + $options);
-      if ($item) {
-        $items[] = $item;
-      }
-    }
-
+    $items = $this->getItems('Text', $element, $webform_submission, $options);
     if (empty($items)) {
       return '';
     }
@@ -1694,6 +1671,44 @@ class WebformElementBase extends PluginBase implements WebformElementInterface, 
     }
 
     return $value;
+  }
+
+  /**
+   * Get element's submission value items.
+   *
+   * @param string $type
+   *   The format type, HTML or Text.
+   * @param array $element
+   *   An element.
+   * @param \Drupal\webform\WebformSubmissionInterface $webform_submission
+   *   A webform submission.
+   * @param array $options
+   *   An array of options.
+   *
+   * @return array
+   *   The element's submission value items.
+   */
+  protected function getItems($type, array &$element, WebformSubmissionInterface $webform_submission, array $options = []) {
+    $name = strtolower($type);
+
+    $value = $this->getValue($element, $webform_submission, $options);
+
+    $item_function = 'format' . $type . 'Item';
+
+    $items = [];
+    foreach (array_keys($value) as $delta) {
+      if ($this->getItemFormat($element) === 'custom' && !empty($element['#format_' . $name])) {
+        $item = $this->formatCustomItem($type, $element, $webform_submission, ['delta' => $delta] + $options);
+      }
+      else {
+        $item = $this->$item_function($element, $webform_submission, ['delta' => $delta] + $options);
+      }
+      if ($item) {
+        $items[] = $item;
+      }
+    }
+
+    return $items;
   }
 
   /**
@@ -2022,9 +2037,18 @@ class WebformElementBase extends PluginBase implements WebformElementInterface, 
     if ($sid = $webform_submission->id()) {
       $query->condition('ws.sid', $sid, '<>');
     }
+    // Get duplicate values to account for case-insensitivity.
+    $duplicate_values = $query->execute()->fetchCol();
+    if (empty($duplicate_values)) {
+      return;
+    }
+    // Determine the duplicate values.
+    $duplicate_values = array_intersect((array) $value, $duplicate_values);
+    if (empty($duplicate_values)) {
+      return;
+    }
     // Get single duplicate value.
-    $query->range(0, 1);
-    $duplicate_value = $query->execute()->fetchField();
+    $duplicate_value = reset($duplicate_values);
 
     // Skip NULL or empty string value.
     if ($duplicate_value === FALSE || $duplicate_value === '') {
@@ -2166,8 +2190,8 @@ class WebformElementBase extends PluginBase implements WebformElementInterface, 
     // Set checked/unchecked states for any element that contains checkboxes.
     if ($this instanceof Checkbox || $this instanceof Checkboxes) {
       $states[$value_optgroup] = [
-        'checked' => $this->t('Checked'),
-        'unchecked' => $this->t('Unchecked'),
+        'checked' => $this->t('Checked', [], ['context' => 'Add check mark']),
+        'unchecked' => $this->t('Unchecked', [], ['context' => 'Remove check mark']),
       ];
     }
 
@@ -3100,7 +3124,7 @@ class WebformElementBase extends PluginBase implements WebformElementInterface, 
       '#type' => 'webform_codemirror',
       '#mode' => 'twig',
       '#title' => $this->t('Item format custom HTML'),
-      '#description' => $this->t('The HTML to display for a single element value. You may include HTML or <a href=":href">Twig</a>. You may enter data from the submission as per the "variables" below.', [':href' => 'http://twig.sensiolabs.org/documentation']),
+      '#description' => $this->t('The HTML to display for a single element value. You may include HTML or <a href=":href">Twig</a>. You may enter data from the submission as per the "variables" below.', [':href' => 'https://twig.symfony.com/documentation']),
       '#states' => $format_custom_states,
       '#access' => $format_custom,
     ];
@@ -3108,7 +3132,7 @@ class WebformElementBase extends PluginBase implements WebformElementInterface, 
       '#type' => 'webform_codemirror',
       '#mode' => 'twig',
       '#title' => $this->t('Item format custom Text'),
-      '#description' => $this->t('The text to display for a single element value. You may include <a href=":href">Twig</a>. You may enter data from the submission as per the "variables" below.', [':href' => 'http://twig.sensiolabs.org/documentation']),
+      '#description' => $this->t('The text to display for a single element value. You may include <a href=":href">Twig</a>. You may enter data from the submission as per the "variables" below.', [':href' => 'https://twig.symfony.com/documentation']),
       '#states' => $format_custom_states,
       '#access' => $format_custom,
     ];
@@ -3173,7 +3197,7 @@ class WebformElementBase extends PluginBase implements WebformElementInterface, 
       '#type' => 'webform_codemirror',
       '#mode' => 'twig',
       '#title' => $this->t('Items format custom HTML'),
-      '#description' => $this->t('The HTML to display for multiple element values. You may include HTML or <a href=":href">Twig</a>. You may enter data from the submission as per the "variables" below.', [':href' => 'http://twig.sensiolabs.org/documentation']),
+      '#description' => $this->t('The HTML to display for multiple element values. You may include HTML or <a href=":href">Twig</a>. You may enter data from the submission as per the "variables" below.', [':href' => 'https://twig.symfony.com/documentation']),
       '#states' => $format_items_custom_states,
       '#access' => $format_items_custom,
     ];
@@ -3181,7 +3205,7 @@ class WebformElementBase extends PluginBase implements WebformElementInterface, 
       '#type' => 'webform_codemirror',
       '#mode' => 'twig',
       '#title' => $this->t('Items format custom Text'),
-      '#description' => $this->t('The text to display for multiple element values. You may include <a href=":href">Twig</a>. You may enter data from the submission as per the "variables" below.', [':href' => 'http://twig.sensiolabs.org/documentation']),
+      '#description' => $this->t('The text to display for multiple element values. You may include <a href=":href">Twig</a>. You may enter data from the submission as per the "variables" below.', [':href' => 'https://twig.symfony.com/documentation']),
       '#states' => $format_items_custom_states,
       '#access' => $format_items_custom,
     ];

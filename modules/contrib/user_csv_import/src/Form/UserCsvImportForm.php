@@ -159,7 +159,7 @@ class UserCsvImportForm extends FormBase {
     // Fields field set.
     $form['config_fields'] = [
       '#type' => 'fieldset',
-      '#title' => $this->t('Fields'),
+      '#title' => $this->t('Select fields to import'),
     ];
 
     // Get user entity fields.
@@ -169,7 +169,7 @@ class UserCsvImportForm extends FormBase {
     $selectable_fields = [];
 
     foreach ($user_fields as $field) {
-      $selectable_fields[$field->getName()] = $field->getLabel();
+      $selectable_fields[$field->getName()] = $field->getName();
     }
 
     // User form fields.
@@ -181,11 +181,11 @@ class UserCsvImportForm extends FormBase {
     ];
     // Special handling for 'name' and 'mail'.
     $form['config_fields']['fields']['name'] = [
-      '#default_value' => true,
+      '#default_value' => 'name',
       '#disabled' => true,
     ];
     $form['config_fields']['fields']['mail'] = [
-      '#default_value' => true,
+      '#default_value' => 'mail',
       '#disabled' => true,
     ];
 
@@ -231,18 +231,46 @@ class UserCsvImportForm extends FormBase {
   public function generateSample(&$form, FormStateInterface $form_state) {
     $fields = $form_state->getValue(['config_fields', 'fields']);
     $sepchar = $form['config_options']['separator']['#value'];
-    $content = implode($sepchar, array_filter($fields)) . PHP_EOL;
+    $sampleusers[0] = [
+      'name' => 'john',
+      'mail' => 'john@example.com',
+      'pass' => 'examplePW1',
+      'timezone' => 'UTC',
+    ];
+    $sampleusers[1] = [
+      'name' => 'jane',
+      'mail' => 'jane@example.com',
+      'pass' => 'examplePW2',
+      'timezone' => 'Europe/Oslo',
+    ];
+    $content = implode($sepchar, array_filter($fields));
 
-    for ($i = 1; $i < 3; $i++) {
+    $cc = [];
+    $cc[] = $content;
+
+    for ($ii = 0; $ii < 2; $ii++) {
       $row = [];
       foreach (array_filter($fields) as $field) {
-        $row[] = 'sample_' . $field . '_' . $i;
+	switch ($field) {
+	  case 'name':
+	  case 'mail':
+	  case 'pass':
+	  case 'timezone':
+            $row[] = $sampleusers[$ii][$field];
+	    break;
+	  default:
+            $row[] = 'sample_' . $field . '_' . $ii;
+	}
       }
-      $content .= implode($sepchar, $row). PHP_EOL;
+      $cc[] = implode($sepchar, $row);
+    }
+    $lines = '';
+    foreach ($cc as $line) {
+      $lines .= $line . PHP_EOL;
     }
 
     $response = new Response();
-    $response->setContent($content);
+    $response->setContent($lines);
     $response->headers->set('Content-Type', 'text/csv');
     $response->headers->set('Content-Disposition', 'attachment; filename="user-csv-import-sample.csv"');
     $form_state->setResponse($response);
@@ -269,18 +297,13 @@ class UserCsvImportForm extends FormBase {
 
     // If there is no options selected, show the error.
     if (empty($roles_selected) && !$sample_only) {
-
       $form_state->setErrorByName('roles', $this->t('Please select at least one role to apply to the imported user(s).'));
-
     }
     elseif (empty($fields_selected)) {
-
       $form_state->setErrorByName('fields', $this->t('Please select at least one field to apply to the imported user(s).'));
-
-      // If "mail" and "name" fields are not selected, show an error.
     }
     elseif (!array_key_exists('mail', $fields_selected) or !array_key_exists('name', $fields_selected)) {
-
+      // If "mail" and "name" fields are not selected, show an error.
       $form_state->setErrorByName('roles', $this->t('The email and username fields are required.'));
     }
 

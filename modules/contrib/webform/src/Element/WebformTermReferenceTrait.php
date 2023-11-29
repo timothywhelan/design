@@ -2,6 +2,8 @@
 
 namespace Drupal\webform\Element;
 
+use Drupal\Component\Utility\NestedArray;
+
 /**
  * Trait for term reference elements.
  */
@@ -15,27 +17,30 @@ trait WebformTermReferenceTrait {
    */
   public static function setOptions(array &$element) {
     $language = \Drupal::languageManager()->getCurrentLanguage()->getId();
-    if (!empty($element['#options'])) {
-      return;
-    }
-
-    if (!\Drupal::moduleHandler()->moduleExists('taxonomy') || empty($element['#vocabulary'])) {
+    $vocabulary_id = $element['#vocabulary'];
+    if (empty($vocabulary_id) || !\Drupal::moduleHandler()->moduleExists('taxonomy')) {
       $element['#options'] = [];
       return;
     }
 
-    if (!empty($element['#breadcrumb'])) {
-      $element['#options'] = static::getOptionsBreadcrumb($element, $language);
-    }
-    else {
-      $element['#options'] = static::getOptionsTree($element, $language);
+    $vocabulary_list_cache_tag = "taxonomy_term_list:{$vocabulary_id}";
+    // Only initialize the term options once by checking the cache tags.
+    $cache_tags = NestedArray::getValue($element, ['#cache', 'tags']) ?? [];
+    if (in_array($vocabulary_list_cache_tag, $cache_tags)) {
+      return;
     }
 
-    // Add the vocabulary to the cache tags.
-    // Issue #2920913: The taxonomy_term_list cache should be invalidated
-    // on a vocabulary-by-vocabulary basis.
-    // @see https://www.drupal.org/project/drupal/issues/2920913
-    $element['#cache']['tags'][] = 'taxonomy_term_list';
+    $element['#options'] = $element['#options'] ?? [];
+
+    if (!empty($element['#breadcrumb'])) {
+      $element['#options'] = static::getOptionsBreadcrumb($element, $language) + $element['#options'];
+    }
+    else {
+      $element['#options'] = static::getOptionsTree($element, $language) + $element['#options'];
+    }
+
+    // Add vocabulary-specific cache tag for targeted cache invalidation.
+    $element['#cache']['tags'][] = $vocabulary_list_cache_tag;
   }
 
   /**

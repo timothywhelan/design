@@ -3,14 +3,14 @@
 namespace Drupal\webform\Entity;
 
 use Drupal\Component\Render\PlainTextOutput;
-use Drupal\Core\Entity\ContentEntityInterface;
-use Drupal\Core\Serialization\Yaml;
 use Drupal\Component\Utility\Crypt;
-use Drupal\Core\Entity\EntityStorageInterface;
-use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Entity\ContentEntityBase;
-use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityChangedTrait;
+use Drupal\Core\Entity\EntityStorageInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\Serialization\Yaml;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
@@ -116,11 +116,19 @@ class WebformSubmission extends ContentEntityBase implements WebformSubmissionIn
   protected $computedData = [];
 
   /**
+   * The webform view mode twig.
+   *
+   * @var string
+   */
+  protected $webformViewModeTwig;
+
+  /**
    * The data hashed.
    *
    * @var string
    */
   protected $dataHash;
+
   /**
    * Flag to indicated if submission is being converted from anonymous to authenticated.
    *
@@ -494,7 +502,22 @@ class WebformSubmission extends ContentEntityBase implements WebformSubmissionIn
     if (isset($this->dataHash)) {
       return $this->dataHash;
     }
-    $this->dataHash = Crypt::hmacBase64(serialize($this->getRawData()), Settings::getHashSalt());
+
+    // Anonymous recursive data massaging function.
+    $massage_data = function (array $array) use (&$massage_data) {
+      foreach ($array as $key => $value) {
+        if (is_object($value)) {
+          unset($array[$key]);
+        }
+        elseif (is_array($value)) {
+          $array[$key] = $massage_data($value);
+        }
+      }
+      return $array;
+    };
+
+    $data = $massage_data($this->getRawData());
+    $this->dataHash = Crypt::hmacBase64(serialize($data), Settings::getHashSalt());
     return $this->dataHash;
   }
 
@@ -509,22 +532,25 @@ class WebformSubmission extends ContentEntityBase implements WebformSubmissionIn
    * {@inheritdoc}
    */
   public function getWebform() {
-    if (isset($this->webform_id->entity)) {
-      return $this->webform_id->entity;
+    $webform = static::$webform;
+    if (!$webform && isset($this->webform_id->entity)) {
+      $webform = $this->webform_id->entity;
     }
-    else {
-      return static::$webform;
-    }
+    return $webform;
   }
 
   /**
    * {@inheritdoc}
    */
   public function getSourceEntity($translate = FALSE) {
-    if ($this->entity_type->value && $this->entity_id->value) {
-      $entity_type = $this->entity_type->value;
-      $entity_id = $this->entity_id->value;
-      $source_entity = $this->entityTypeManager()->getStorage($entity_type)->load($entity_id);
+    $entity_type = $this->entity_type->value ?? NULL;
+    $entity_id = $this->entity_id->value ?? NULL;
+    if ($entity_type
+      && $entity_id
+      && $this->entityTypeManager()->hasDefinition($entity_type)) {
+      $source_entity = $this->entityTypeManager()
+        ->getStorage($entity_type)
+        ->load($entity_id);
 
       // If translated is set, get the translated source entity.
       if ($translate && $source_entity instanceof ContentEntityInterface) {

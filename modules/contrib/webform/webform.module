@@ -9,10 +9,10 @@ use Drupal\Component\Serialization\Json;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
-use Drupal\Core\Render\Element;
-use Drupal\Core\Render\Markup;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\Element;
+use Drupal\Core\Render\Markup;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
@@ -39,6 +39,10 @@ require_once __DIR__ . '/includes/webform.query.inc';
  * Implements hook_help().
  */
 function webform_help($route_name, RouteMatchInterface $route_match) {
+  if (!$route_match->getRouteObject()) {
+    return NULL;
+  }
+
   // Get path from route match.
   $path = preg_replace('/^' . preg_quote(base_path(), '/') . '/', '/', Url::fromRouteMatch($route_match)->setAbsolute(FALSE)->toString());
   if (!in_array($route_name, ['system.modules_list', 'update.status']) && strpos($route_name, 'webform') === FALSE && strpos($path, '/webform') === FALSE) {
@@ -94,6 +98,13 @@ function webform_modules_installed($modules) {
   /** @var \Drupal\webform\WebformEmailProviderInterface $email_provider */
   $email_provider = \Drupal::service('webform.email_provider');
   $email_provider->check();
+
+  // Update Webform HTML editor.
+  if (in_array('ckeditor', $modules)
+    || in_array('ckeditor5', $modules)) {
+    \Drupal::moduleHandler()->loadInclude('webform', 'inc', 'includes/webform.install') .
+    _webform_update_html_editor();
+  }
 }
 
 /**
@@ -120,6 +131,13 @@ function webform_modules_uninstalled($modules) {
   /** @var \Drupal\webform\WebformEmailProviderInterface $email_provider */
   $email_provider = \Drupal::service('webform.email_provider');
   $email_provider->check();
+
+  // Update Webform HTML editor.
+  if (in_array('ckeditor', $modules)
+    || in_array('ckeditor5', $modules)) {
+    \Drupal::moduleHandler()->loadInclude('webform', 'inc', 'includes/webform.install') .
+    _webform_update_html_editor();
+  }
 }
 
 /**
@@ -304,13 +322,14 @@ function webform_module_implements_alter(&$implementations, $hook) {
  * Implements hook_token_info_alter().
  */
 function webform_token_info_alter(&$data) {
-  module_load_include('inc', 'webform', 'webform.tokens');
+  \Drupal::moduleHandler()->loadInclude('webform', 'tokens.inc');
 
   // Append learn more about token suffixes to all webform token descriptions.
   // @see \Drupal\webform\WebformTokenManager::replace
   // @see webform_page_attachments()
   $token_suffixes = t('Append the below suffixes to alter the returned value.') .
     '<ul>' .
+    '<li>' . t('<code>:base64encode</code> base64 encodes returned value') . '</li>' .
     '<li>' . t('<code>:clear</code> removes the token when it is not replaced.') . '</li>' .
     '<li>' . t('<code>:urlencode</code> URL encodes returned value.') . '</li>' .
     '<li>' . t('<code>:rawurlencode</code> Raw URL encodes returned value with only hex digits.') . '</li>' .
@@ -589,6 +608,37 @@ function webform_page_attachments(array &$attachments) {
   // @see webform_token_info_alter()
   if ($route_name === 'help.page' && \Drupal::routeMatch()->getRawParameter('name') === 'token') {
     $attachments['#attached']['library'][] = 'webform/webform.token';
+  }
+
+  // Attach meta tag robots noindex directive to all webform confirmation pages
+  // , if the metatag module is not installed.
+  // @see webform_metatags_alter()
+  if (!\Drupal::moduleHandler()->moduleExists('metatag')
+    && !empty(\Drupal::config('webform.settings')->get('settings.default_confirmation_noindex'))
+    && preg_match('/^(entity\.webform\.confirmation|entity\.[a-z-_]+\.webform\.confirmation)$/', $route_name)) {
+    $attachments['#attached']['html_head'][] = [
+      [
+        '#tag' => 'meta',
+        '#attributes' => ['name' => 'robots', 'content' => 'noindex'],
+      ],
+      'webform_confirmation_noindex',
+    ];
+  }
+}
+
+/**
+ * Implements hook_metatags_alter().
+ */
+function webform_metatags_alter(array &$metatags, array &$context) {
+  $route_name = \Drupal::routeMatch()->getRouteName();
+  if (!empty(\Drupal::config('webform.settings')->get('settings.default_confirmation_noindex'))
+    && $route_name
+    && preg_match('/^(entity\.webform\.confirmation|entity\.[a-z-_]+\.webform\.confirmation)$/', $route_name)) {
+    $robots = (!empty($metatags['robots']))
+      ? preg_split('/\s*,\s*/', $metatags['robots'])
+      : [];
+    $robots[] = 'noindex';
+    $metatags['robots'] = implode(', ', array_unique($robots));
   }
 }
 
@@ -939,6 +989,23 @@ function webform_element_info_alter(array &$info) {
   $info['radios']['#process'][] = 'webform_process_options';
   $info['webform_entity_checkboxes']['#process'][] = 'webform_process_options';
   $info['webform_entity_radios']['#process'][] = 'webform_process_options';
+
+  if (isset($info['text_format'])) {
+    $info['text_format']['#process'] = array_merge(
+      $info['text_format']['#process'] ?? [],
+      [['\Drupal\webform\Element\WebformHtmlEditor', 'processTextFormat']]
+    );
+    $info['text_format']['#pre_render'] = array_merge(
+      [['\Drupal\webform\Element\WebformHtmlEditor', 'preRenderTextFormat']],
+      $info['text_format']['#pre_render'] ?? []
+    );
+  }
+  if (isset($info['processed_text'])) {
+    $info['processed_text']['#pre_render'][] = [
+      '\Drupal\webform\Element\WebformHtmlEditor',
+      'preRenderProcessedText',
+    ];
+  }
 }
 
 /**

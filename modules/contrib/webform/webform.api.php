@@ -340,7 +340,7 @@ function hook_webform_options_WEBFORM_OPTIONS_ID_alter(array &$options, array &$
  * @param \Drupal\webform\WebformSubmissionInterface[] $webform_submissions
  *   The webform submissions being purged.
  */
-function hook_webform_submissions_pre_purge(array $webform_submissions) {
+function hook_webform_submissions_pre_purge(array &$webform_submissions) {
 
 }
 
@@ -442,12 +442,13 @@ function hook_webform_third_party_settings_form_alter(array &$form, \Drupal\Core
  * @see \Drupal\webform\Plugin\WebformHandlerInterface
  */
 function hook_webform_handler_invoke_alter(\Drupal\webform\Plugin\WebformHandlerInterface $handler, $method_name, array &$args) {
-  $webform = $handler->getWebform();
-  $webform_submission = $handler->getWebformSubmission();
-
-  $webform_id = $handler->getWebform()->id();
   $handler_id = $handler->getHandlerId();
-  $state = $webform_submission->getState();
+  $webform = $handler->getWebform();
+  if ($webform) {
+    $webform_id = $handler->getWebform()->id();
+    $webform_submission = $handler->getWebformSubmission();
+    $state = $webform_submission->getState();
+  }
 }
 
 /**

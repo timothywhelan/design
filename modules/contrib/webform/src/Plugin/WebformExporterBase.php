@@ -56,6 +56,13 @@ abstract class WebformExporterBase extends PluginBase implements WebformExporter
   protected $archive;
 
   /**
+   * The configuration array.
+   *
+   * @var array
+   */
+  protected $configuration;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
@@ -381,7 +388,7 @@ abstract class WebformExporterBase extends PluginBase implements WebformExporter
   protected function addToZipFile($path, $name, array $options = []) {
     if (!isset($this->archive)) {
       $this->archive = new \ZipArchive();
-      $flags = !file_exists($this->getArchiveFilePath()) ? \ZipArchive::CREATE : NULL;
+      $flags = !file_exists($this->getArchiveFilePath()) ? \ZipArchive::CREATE : 0;
       $this->archive->open($this->getArchiveFilePath(), $flags);
     }
 

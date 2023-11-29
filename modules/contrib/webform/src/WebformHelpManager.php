@@ -6,15 +6,15 @@
 namespace Drupal\webform;
 
 use Drupal\Component\Utility\Xss;
-use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Path\PathMatcherInterface;
 use Drupal\Core\Render\Markup;
+use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Serialization\Yaml;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\State\StateInterface;
-use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
-use Drupal\Core\Path\PathMatcherInterface;
 use Drupal\Core\Url;
 use Drupal\webform\Element\WebformMessage;
 use Drupal\webform\Plugin\WebformElementManagerInterface;
@@ -526,6 +526,10 @@ class WebformHelpManager implements WebformHelpManagerInterface {
    * {@inheritdoc}
    */
   public function buildAddOns($docs = FALSE) {
+    $t_args = [
+      ':href_submodules' => 'https://www.drupal.org/docs/contributed-modules/webform/webform-sub-modules',
+      ':href_libraries' => 'https://www.drupal.org/docs/contributed-modules/webform/webform-libraries',
+    ];
     $build = [
       'quote' => [
         '#markup' => '<table class="views-view-grid" width="100%"><tr>
@@ -535,9 +539,13 @@ class WebformHelpManager implements WebformHelpManagerInterface {
         '#allowed_tags' => Xss::getAdminTagList(),
       ],
       'content' => [
-        '#markup' => '<p>' . $this->t("Below is a list of modules and projects that extend and/or provide additional functionality to the Webform module and Drupal's Form API.") . '</p>' .
-          '<hr/>' .
-          '<p>★ = ' . $this->t('Recommended') . '</p>',
+        '#markup' => '<p>'
+        . $this->t("Below is a list of modules and projects that extend and/or provide additional functionality to the Webform module and Drupal's Form API.")
+        . ' '
+        . $this->t('(Other optional functionality is provided by <a href=":href_submodules">Webform sub-modules</a> and <a href=":href_libraries">Webform libraries</a>.)', $t_args)
+        . '</p>'
+        . '<hr/>'
+        . '<p>★ = ' . $this->t('Recommended') . '</p>',
       ],
     ];
 
@@ -1169,7 +1177,7 @@ class WebformHelpManager implements WebformHelpManagerInterface {
           ],
           [
             'title' => $this->t('Display forms in a modal dialog with Drupal 8 | Agaric'),
-            'url' => 'http://agaric.com/blogs/display-forms-modal-dialog-drupal-8',
+            'url' => 'https://agaric.com/blogs/display-forms-modal-dialog-drupal-8',
           ],
           [
             'title' => $this->t('jQueryUI Dialog Documentation'),
@@ -1632,7 +1640,7 @@ class WebformHelpManager implements WebformHelpManagerInterface {
     $help['webforms_manage'] = [
       'group' => 'forms',
       'title' => $this->t('Forms'),
-      'content' => $this->t('The <strong>Forms</strong> management page lists all available webforms, which can be filtered by the following: title, description, elements, category and status.'),
+      'content' => $this->t('The <strong>Forms</strong> management page lists all available webforms, which can be filtered by the following: keyword (including title, description, elements, user name, or role), category, and status.'),
       'video_id' => 'forms',
       'routes' => [
         // @see /admin/structure/webform
@@ -1775,6 +1783,8 @@ class WebformHelpManager implements WebformHelpManagerInterface {
 
     // Configuration: Libraries.
     $t_args = [
+      ':href_62x' => 'https://git.drupalcode.org/sandbox/jrockowitz-2941983/-/raw/6.2.x/libraries.zip',
+      ':href_61x' => 'https://git.drupalcode.org/sandbox/jrockowitz-2941983/-/raw/6.1.x/libraries.zip',
       '@webform-libraries-composer' => 'webform-libraries-composer',
       '@webform-libraries-download' => 'webform-libraries-download',
       '@webform-composer-update' => 'webform-composer-update',
@@ -1786,28 +1796,25 @@ class WebformHelpManager implements WebformHelpManagerInterface {
         $t_args[$command_name] = str_replace('-', ':', $command);
       }
     }
-    $t_args += [
-      ':href_6x' => 'https://git.drupalcode.org/sandbox/jrockowitz-2941983/-/raw/6.x/libraries.zip',
-    ];
     $help['config_libraries_help'] = [
       'group' => 'configuration',
       'title' => $this->t('Configuration: Libraries: Help'),
       'content' => '<p>' . $this->t('The Webform module utilizes third-party Open Source libraries to enhance webform elements and to provide additional functionality.') . ' ' .
         $this->t("It is recommended that these libraries are installed in your Drupal installation's /libraries or /web/libraries directory.") . ' ' .
         $this->t('If these libraries are not installed, they will be automatically loaded from a CDN.') . ' ' .
-        $this->t('All libraries are optional and can be excluded via the admin settings form.') .
+        $this->t('All libraries are optional and can be excluded via the admin settings form.') . ' ' .
         '</p>' .
         '<p>' . $this->t('There are several ways to download the needed third-party libraries.') . '</p>' .
         '<p><strong>' . $this->t('Recommended') . '</strong></p>' .
         '<ul>' .
-        '<li>' . $this->t('Use the <a href="https://github.com/wikimedia/composer-merge-plugin">Composer Merge plugin</a> to include the Webform module\'s <a href="https://cgit.drupalcode.org/webform/tree/composer.libraries.json">composer.libraries.json</a> or generate a custom file using <code>drush @webform-libraries-composer &gt; DRUPAL_ROOT/composer.libraries.json</code>.', $t_args) . '<br/><strong>' . $this->t('<a href="https://www.drupal.org/node/3003140">Learn more &raquo;</a>') . '</strong>' . '</li>' .
+        '<li>' . $this->t('Use the <a href="https://github.com/wikimedia/composer-merge-plugin">Composer Merge plugin</a> to include the Webform module\'s <a href="https://cgit.drupalcode.org/webform/tree/composer.libraries.json">composer.libraries.json</a> or generate a custom file using <code>drush webform:libraries:composer &gt; DRUPAL_ROOT/composer.libraries.json</code>.', $t_args) . '<br/><strong>' . $this->t('<a href="https://www.drupal.org/node/3003140">Learn more &raquo;</a>') . '</strong>' . '</li>' .
         '</ul>' .
         '<p><strong>' . $this->t('Alternatives') . '</strong></p>' .
         '<ul>' .
         '<li>' . $this->t('Generate a composer.json file using <code>drush @webform-libraries-composer</code>.', $t_args) . '</li>' .
         '<li>' . $this->t('Execute <code>drush @webform-libraries-download</code>, to download third-party libraries required by the Webform module. (OSX/Linux)', $t_args) . '</li>' .
         '<li>' . $this->t("Execute <code>drush @webform-composer-update</code>, to update your Drupal installation's composer.json to include the Webform module's selected libraries as repositories.", $t_args) . '</li>' .
-        '<li>' . $this->t('Download and extract a zipped archive containing all webform libraries (<a href=":href_6x">6.x</a>) and extract the directories and files to /libraries or /web/libraries', $t_args) . '</li>' .
+        '<li>' . $this->t('Download and extract a zipped archive containing all webform libraries (<a href=":href_61x">6.1.x</a> or <a href=":href_62x">6.2.x</a>) and extract the directories and files to /libraries or /web/libraries', $t_args) . '</li>' .
         '</ul>',
       'message_type' => 'info',
       'message_close' => TRUE,
@@ -2355,8 +2362,8 @@ class WebformHelpManager implements WebformHelpManagerInterface {
     /* ********************************************************************** */
 
     // Initialize help.
-    foreach ($help as $id => &$help_info) {
-      $help_info += [
+    foreach (array_keys($help) as $id) {
+      $help[$id] += [
         'id' => $id,
         'reset_version' => FALSE,
       ];

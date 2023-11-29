@@ -164,7 +164,7 @@ function webform_requirements($phase) {
   }
 
   /* ************************************************************************ */
-  // Check jQuery UI Datepicker module.
+  // Check Webform jQuery UI Datepicker module.
   /* ************************************************************************ */
 
   $config_factory = \Drupal::configFactory();
@@ -172,30 +172,21 @@ function webform_requirements($phase) {
   foreach ($config_factory->listAll('webform.webform.') as $webform_config_name) {
     $webform_config = $config_factory->getEditable($webform_config_name);
     $data = $webform_config->getRawData();
-    if (strpos($data['elements'], 'datepicker')) {
+    if (isset($data['elements']) && strpos($data['elements'], 'datepicker')) {
       $has_datepicker = TRUE;
       break;
     }
   }
-  if ($has_datepicker) {
-    if (\Drupal::moduleHandler()->moduleExists('jquery_ui_datepicker')) {
-      $requirements['jquery_ui_datepicker'] = [
-        'title' => t('Webform: jQuery UI Datepicker'),
-        'value' => t('jQuery UI Datepicker module installed.'),
-      ];
-    }
-    else {
-      $t_args = [
-        ':href_webform' => Url::fromRoute('entity.webform.collection', [], ['query' => ['search' => 'datepicker']])->toString(),
-        ':href_datepicker' => 'https://www.drupal.org/project/jquery_ui_datepicker',
-      ];
-      $requirements['jquery_ui_datepicker'] = [
-        'title' => t('Webform: jQuery UI Datepicker'),
-        'value' => t('jQuery UI Datepicker module not installed.'),
-        'description' => t('The <a href=":href_datepicker">jQuery UI Datepicker</a> module is required to support datepickers. Disable this datepicker warning by <a href=":href_webform">removing #datepicker property from all webforms</a>.', $t_args),
-        'severity' => REQUIREMENT_WARNING,
-      ];
-    }
+  if ($has_datepicker && !\Drupal::moduleHandler()->moduleExists('webform_jqueryui_datepicker')) {
+    $t_args = [
+      ':href' => Url::fromRoute('entity.webform.collection', [], ['query' => ['search' => 'datepicker']])->toString(),
+    ];
+    $requirements['jquery_ui_datepicker'] = [
+      'title' => t('Webform: jQuery UI Datepicker'),
+      'value' => t('Webform jQuery UI Datepicker module not installed.'),
+      'description' => t('The Webform jQuery UI Datepicker module is required to support datepickers. Disable this datepicker warning by <a href=":href">removing #datepicker property from all webforms</a>.', $t_args),
+      'severity' => REQUIREMENT_WARNING,
+    ];
   }
 
   /* ************************************************************************ */
