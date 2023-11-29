@@ -30,6 +30,13 @@ class OverrideWebformVariant extends WebformVariantBase {
   protected $currentUser;
 
   /**
+   * The configuration array.
+   *
+   * @var array
+   */
+  protected $configuration;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
@@ -204,7 +211,7 @@ class OverrideWebformVariant extends WebformVariantBase {
           $webform->setElements([$element_key => $element_properties] + $webform->getElementsDecoded());
         }
         else {
-          $element = $webform->getElement($element_key);
+          $element = $webform->getElementDecoded($element_key);
           if (!$element) {
             continue;
           }

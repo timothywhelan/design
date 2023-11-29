@@ -14,7 +14,7 @@ archive: false
 id: template_job_application
 title: 'Job Application'
 description: 'A job application webform template.'
-category: ''
+categories: {  }
 elements: |
   information:
     '#title': 'Your Information'
@@ -46,12 +46,15 @@ elements: |
     '#type': webform_section
     resume_method:
       '#type': radios
+      '#title': 'Resume method'
+      '#title_display': invisible
       '#options':
         attach: 'Attach resume file'
         paste: 'Paste your resume'
-      '#prefix': '<div class="container-inline">'
-      '#suffix': '</div>'
       '#default_value': attach
+      '#wrapper_attributes':
+        class:
+          - container-inline
     resume_file:
       '#type': managed_file
       '#title': Resume
@@ -84,7 +87,6 @@ elements: |
     '#type': webform_actions
     '#title': 'Submit button(s)'
     '#submit__label': Apply
-  
 css: ''
 javascript: ''
 settings:
@@ -172,6 +174,8 @@ settings:
   wizard_toggle: false
   wizard_toggle_show_label: ''
   wizard_toggle_hide_label: ''
+  wizard_page_type: container
+  wizard_page_title_tag: h2
   preview: 0
   preview_label: ''
   preview_title: ''

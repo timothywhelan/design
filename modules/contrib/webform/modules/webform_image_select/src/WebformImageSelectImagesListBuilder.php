@@ -5,6 +5,7 @@ namespace Drupal\webform_image_select;
 use Drupal\Core\Config\Entity\ConfigEntityListBuilder;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\Url;
 use Drupal\webform\EntityListBuilder\WebformEntityListBuilderSortLabelTrait;
 use Drupal\webform\Utility\WebformDialogHelper;
@@ -111,7 +112,7 @@ class WebformImageSelectImagesListBuilder extends ConfigEntityListBuilder {
    *   A render array representing the information summary.
    */
   protected function buildInfo() {
-    $total = $this->getQuery($this->keys, $this->category)->count()->execute();
+    $total = $this->getQuery($this->keys, $this->category)->accessCheck(FALSE)->count()->execute();
     if (!$total) {
       return [];
     }
@@ -144,8 +145,9 @@ class WebformImageSelectImagesListBuilder extends ConfigEntityListBuilder {
    * {@inheritdoc}
    */
   public function buildRow(EntityInterface $entity) {
+    $row = [];
     /** @var \Drupal\webform_image_select\WebformImageSelectImagesInterface $entity */
-    $row['label'] = $entity->toLink($entity->label(), 'edit-form');
+    $row['label'] = $entity->toLink((string) $entity->label(), 'edit-form');
     $row['category'] = $entity->get('category');
     $row['images'] = $this->buildImages($entity);
     $row['used_by'] = $this->buildUsedBy($entity);
@@ -252,7 +254,7 @@ class WebformImageSelectImagesListBuilder extends ConfigEntityListBuilder {
    * @return \Drupal\Core\Entity\Query\QueryInterface
    *   An entity query.
    */
-  protected function getQuery($keys = '', $category = '') {
+  protected function getQuery($keys = '', $category = ''): QueryInterface {
     $query = $this->getStorage()->getQuery();
 
     // Filter by key(word).

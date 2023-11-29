@@ -3,8 +3,8 @@
 namespace Drupal\Tests\webform_image_select\Functional;
 
 use Drupal\Core\Serialization\Yaml;
-use Drupal\webform\WebformInterface;
 use Drupal\Tests\webform\Functional\Element\WebformElementBrowserTestBase;
+use Drupal\webform\WebformInterface;
 use Drupal\webform_image_select\Entity\WebformImageSelectImages;
 
 /**
@@ -19,7 +19,7 @@ class WebformImageSelectImagesTest extends WebformElementBrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['webform_image_select', 'webform_image_select_test'];
+  protected static $modules = ['webform_image_select', 'webform_image_select_test'];
 
   /**
    * Tests webform image select images entity.
@@ -93,7 +93,7 @@ dog_4:
     // Check invalid images.
     $this->assertEquals([], $webform_images->getImages());
 
-    // Check admin user access denied.
+    // Check normal user access denied.
     $this->drupalGet('/admin/structure/webform/options/images/manage');
     $assert_session->statusCodeEquals(403);
     $this->drupalGet('/admin/structure/webform/options/images/manage/add');

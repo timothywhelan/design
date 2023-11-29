@@ -18,7 +18,7 @@ class WebformSubmissionImportExportFunctionalTest extends WebformBrowserTestBase
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'file',
     'webform',
     'webform_submission_export_import',
@@ -31,8 +31,11 @@ class WebformSubmissionImportExportFunctionalTest extends WebformBrowserTestBase
   public function testSubmissionExport() {
     $this->drupalLogin($this->rootUser);
 
+    /** @var \Drupal\Core\File\FileUrlGeneratorInterface $file_url_generator */
+    $file_url_generator = \Drupal::service('file_url_generator');
+
     $export_csv_uri = 'public://test_submission_export_import-export.csv';
-    $export_csv_url = file_create_url('public://test_submission_export_import-export.csv');
+    $export_csv_url = $file_url_generator->generateAbsoluteString('public://test_submission_export_import-export.csv');
 
     $webform = Webform::load('test_submission_export_import');
 
@@ -96,8 +99,8 @@ class WebformSubmissionImportExportFunctionalTest extends WebformBrowserTestBase
     return;
 
     // Deleted the third submission.
-    $file_uri = file_create_url(File::load($submissions[2]->getElementData('file'))->getFileUri());
-    $files_uri = file_create_url(File::load($submissions[2]->getElementData('files')[0])->getFileUri());
+    $file_uri = File::load($submissions[2]->getElementData('file'))->createFileUrl(FALSE);
+    $files_uri = File::load($submissions[2]->getElementData('files')[0])->createFileUrl(FALSE);
     $submissions[2]->delete();
     unset($submissions[2]);
 
@@ -153,12 +156,15 @@ class WebformSubmissionImportExportFunctionalTest extends WebformBrowserTestBase
    * Test submission import.
    */
   public function testSubmissionImport() {
+    /** @var \Drupal\Core\File\FileUrlGeneratorInterface $file_url_generator */
+    $file_url_generator = \Drupal::service('file_url_generator');
+
     $assert_session = $this->assertSession();
 
     $this->drupalLogin($this->rootUser);
 
-    $webform_csv_url = file_create_url('public://test_submission_export_import-webform.csv');
-    $external_csv_url = file_create_url('public://test_submission_export_import-external.csv');
+    $webform_csv_url = $file_url_generator->generateAbsoluteString('public://test_submission_export_import-webform.csv');
+    $external_csv_url = $file_url_generator->generateAbsoluteString('public://test_submission_export_import-external.csv');
 
     $webform = Webform::load('test_submission_export_import');
 
@@ -188,7 +194,13 @@ class WebformSubmissionImportExportFunctionalTest extends WebformBrowserTestBase
     $assert_session->responseContains('<strong>Row #2:</strong> [file] Invalid file URL (/webform/plain/tests/files/sample.gif). URLS must begin with http:// or https://.');
     $assert_session->responseContains('<strong>Row #2:</strong> [composites] YAML is not valid.');
     $assert_session->responseContains('<strong>Row #3:</strong> The email address <em class="placeholder">not an email address</em> is not valid.');
-    $assert_session->responseContains('<strong>Row #3:</strong> An illegal choice has been detected. Please contact the site administrator.');
+    // @todo Remove once Drupal 10.1.x is only supported.
+    if (floatval(\Drupal::VERSION) >= 10.1) {
+      $assert_session->responseContains('<strong>Row #3:</strong> The submitted value <em class="placeholder">invalid</em> in the <em class="placeholder">checkboxes</em> element is not allowed');
+    }
+    else {
+      $assert_session->responseContains('<strong>Row #3:</strong> An illegal choice has been detected. Please contact the site administrator.');
+    }
 
     // Check the submission 1 (valid) record.
     $submission_1 = $this->loadSubmissionByProperty('notes', 'valid');
@@ -268,7 +280,9 @@ class WebformSubmissionImportExportFunctionalTest extends WebformBrowserTestBase
         3 => [
           0 => 'The email address <em class="placeholder">not an email address</em> is not valid.',
           1 => 'The email address <em class="placeholder">not an email address</em> is not valid.',
-          2 => 'An illegal choice has been detected. Please contact the site administrator.',
+          2 => (floatval(\Drupal::VERSION) >= 10.1)
+            ? 'The submitted value <em class="placeholder">invalid</em> in the <em class="placeholder">checkboxes</em> element is not allowed.'
+            : 'An illegal choice has been detected. Please contact the site administrator.',
         ],
       ],
     ];
@@ -299,6 +313,7 @@ class WebformSubmissionImportExportFunctionalTest extends WebformBrowserTestBase
         'title' => 'Loremipsum',
         'url' => 'http://test.com',
       ],
+      'composites' => [],
       'email' => 'test@test.com',
       'emails' => [
         0 => 'random@random.com',
@@ -308,6 +323,7 @@ class WebformSubmissionImportExportFunctionalTest extends WebformBrowserTestBase
       'entity_reference' => '',
       'entity_references' => '',
       'file' => '',
+      'files' => [],
       'likert' => [
         'q1' => '3',
         'q2' => '3',

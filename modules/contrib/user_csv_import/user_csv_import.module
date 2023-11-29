@@ -6,6 +6,7 @@
  */
 
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Url;
 
 /**
  * Implements hook_help().
@@ -15,11 +16,23 @@ function user_csv_import_help($route_name, RouteMatchInterface $route_match) {
   switch ($route_name) {
 
     case 'help.page.user_csv_import':
-
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('This module allows uploading CSV files from where extract the data and create new user account with the information contained in the file. In addition, it allows selecting which fields will be filled with the information extracted.') . '</p>';
-
+      $output .= '<p>' . t('This module allows uploading CSV files from where extract the data and create new user account with the information contained in the file.') . '</p>';
+      $hint_service = FALSE;
+      if (!empty(\Drupal::hasService('advanced_help_hint.gethint'))) {
+        $hint_service = \Drupal::service('advanced_help_hint.gethint');
+      }
+      if ($hint_service) {
+        $output .= '<p>' . $hint_service->produceHint('user_csv_import',
+          'https://www.drupal.org/docs/contributed-modules/user-csv-import', TRUE) . '</p>';
+      }
+      else {
+        $output .= '<p>' . t('If you install and enable the module <a href=":url"><strong>Advanced Help Hint</strong></a>, you will get more help for <strong>User CSV Import</strong>.', [
+          ':url' => Url::fromUri('https://www.drupal.org/project/advanced_help_hint')->toString(),
+        ]
+        ) . '</p>';
+      }
       return $output;
   }
 

@@ -17,7 +17,7 @@ class WebformElementTableTest extends WebformElementBrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['webform', 'webform_ui', 'file'];
+  protected static $modules = ['webform', 'webform_ui', 'file'];
 
   /**
    * Webforms to load.
@@ -126,7 +126,7 @@ table_advanced_04_textfield: ''");
 
     // Check that add table row link is displayed.
     $this->drupalGet('/admin/structure/webform/manage/test_element_table');
-    $assert_session->linkByHrefExists("${base_path}admin/structure/webform/manage/test_element_table/element/add/webform_table_row?parent=table_basic");
+    $assert_session->linkByHrefExists("{$base_path}admin/structure/webform/manage/test_element_table/element/add/webform_table_row?parent=table_basic");
 
     // Check that add table row without a parent table returns a 404 error.
     $this->drupalGet('/admin/structure/webform/manage/test_element_table/element/add/webform_table_row');

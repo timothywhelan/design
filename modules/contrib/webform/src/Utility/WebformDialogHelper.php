@@ -60,15 +60,13 @@ class WebformDialogHelper {
    *   A render array.
    */
   public static function attachLibraries(array &$build) {
+    $build += ['#attached' => []];
+    $build['#attached'] += ['library' => []];
+    $build['#attached']['library'] = (array) $build['#attached']['library'];
+
     $build['#attached']['library'][] = 'webform/webform.admin.dialog';
     if (static::useOffCanvas()) {
       $build['#attached']['library'][] = 'webform/webform.admin.off_canvas';
-    }
-    // @see \Drupal\webform\Element\WebformHtmlEditor::preRenderWebformHtmlEditor
-    // phpcs:ignore Drupal.Classes.FullyQualifiedNamespace.UseStatementMissing
-    if (\Drupal::moduleHandler()->moduleExists('imce') && \Drupal\imce\Imce::access()) {
-      $build['#attached']['library'][] = 'imce/drupal.imce.ckeditor';
-      $build['#attached']['drupalSettings']['webform']['html_editor']['ImceImageIcon'] = file_create_url(\Drupal::service('extension.list.module')->getPath('imce') . '/js/plugins/ckeditor/icons/imceimage.png');
     }
   }
 

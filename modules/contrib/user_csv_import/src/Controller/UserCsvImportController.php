@@ -134,7 +134,7 @@ class UserCsvImportController {
       'uid' => NULL,
       'name' => $username,
       'pass' => $config['password'],
-      'timezone' => $config['timezone'] ?? 'UTC',
+      'timezone' => $config['timezone'] ?? \Drupal::config('system.date')->get('timezone.default'),
       'status' => $config['status'],
       'created' => \Drupal::time()->getRequestTime(),
       'roles' => array_values($config['roles']),
@@ -173,7 +173,10 @@ class UserCsvImportController {
    */
   private static function usernameExists($username) {
 
-    return \Drupal::entityQuery('user')->condition('name', $username)->execute();
+    return \Drupal::entityQuery('user')
+      ->accessCheck(FALSE)
+      ->condition('name', $username)
+      ->execute();
 
   }
 

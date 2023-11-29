@@ -14,7 +14,8 @@ archive: false
 id: demo_application
 title: 'Demo: Application'
 description: 'A demonstration of a very basic application form.'
-category: Demo
+categories:
+  - Demo
 elements: |
   contact_information:
     '#title': 'Contact Information'
@@ -37,12 +38,15 @@ elements: |
     '#type': webform_section
     resume_method:
       '#type': radios
+      '#title': 'Resume method'
+      '#title_display': invisible
       '#options':
         attach: 'Attach resume file'
         paste: 'Paste your resume'
-      '#prefix': '<div class="container-inline">'
-      '#suffix': '</div>'
       '#default_value': attach
+      '#wrapper_attributes':
+        class:
+          - container-inline
     resume_file:
       '#type': webform_document_file
       '#title': Resume
@@ -159,7 +163,6 @@ elements: |
       '#access_update_roles': {  }
       '#access_view_roles':
         - authenticated
-  
 css: ''
 javascript: ''
 settings:
@@ -247,6 +250,8 @@ settings:
   wizard_toggle: false
   wizard_toggle_show_label: ''
   wizard_toggle_hide_label: ''
+  wizard_page_type: container
+  wizard_page_title_tag: h2
   preview: 0
   preview_label: ''
   preview_title: ''

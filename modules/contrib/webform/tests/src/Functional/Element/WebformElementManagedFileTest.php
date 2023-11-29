@@ -18,7 +18,7 @@ class WebformElementManagedFileTest extends WebformElementManagedFileTestBase {
    *
    * @var array
    */
-  public static $modules = ['file', 'webform'];
+  protected static $modules = ['file', 'webform'];
 
   /**
    * Webforms to load.
@@ -48,7 +48,7 @@ class WebformElementManagedFileTest extends WebformElementManagedFileTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->webform = Webform::load('test_element_managed_file');
@@ -344,16 +344,7 @@ class WebformElementManagedFileTest extends WebformElementManagedFileTestBase {
       $assert_session->responseContains('<label>managed_file_multiple</label>');
       $assert_session->responseContains('<ul>');
     }
-    // @todo Remove once Drupal 9.1.x is only supported.
-    if (floatval(\Drupal::VERSION) >= 9.3) {
-      $assert_session->responseContains('<span class="file file--mime-text-plain file--text"><a href="' . $file->createFileUrl() . '" type="text/plain">' . $file->getFilename() . '</a></span>');
-    }
-    elseif (floatval(\Drupal::VERSION) >= 9.1) {
-      $assert_session->responseContains('<span class="file file--mime-text-plain file--text"><a href="' . file_create_url($file->getFileUri()) . '" type="text/plain">' . $file->getFilename() . '</a></span>');
-    }
-    else {
-      $assert_session->responseContains('<span class="file file--mime-text-plain file--text"><a href="' . file_create_url($file->getFileUri()) . '" type="text/plain; length=' . $file->getSize() . '">' . $file->getFilename() . '</a></span>');
-    }
+    $assert_session->responseContains('<span class="file file--mime-text-plain file--text"><a href="' . $file->createFileUrl() . '" type="text/plain">' . $file->getFilename() . '</a></span>');
 
     // Remove the uploaded file.
     $this->drupalGet('/admin/structure/webform/manage/test_element_managed_file/submission/' . $sid . '/edit');
@@ -388,7 +379,7 @@ class WebformElementManagedFileTest extends WebformElementManagedFileTestBase {
     $this->assertEquals($submission->getElementData($key), $second, 'Test new file was upload to the current submission');
 
     // Check that test file was deleted from the disk and database.
-    $this->assertFileNotExists($file->getFileUri(), 'Test file deleted from disk');
+    $this->assertFileDoesNotExist($file->getFileUri(), 'Test file deleted from disk');
     $this->assertEquals(0, \Drupal::database()->query('SELECT COUNT(fid) AS total FROM {file_managed} WHERE fid = :fid', [':fid' => $fid])->fetchField(), 'Test file 0 deleted from database');
     $this->assertEquals(0, \Drupal::database()->query('SELECT COUNT(fid) AS total FROM {file_usage} WHERE fid = :fid', [':fid' => $fid])->fetchField(), 'Test file 0 deleted from database');
 
@@ -402,11 +393,11 @@ class WebformElementManagedFileTest extends WebformElementManagedFileTestBase {
     $submission->delete();
 
     // Check that test file 1 was deleted from the disk and database.
-    $this->assertFileNotExists($new_file->getFileUri(), 'Test new file deleted from disk');
+    $this->assertFileDoesNotExist($new_file->getFileUri(), 'Test new file deleted from disk');
     $this->assertEquals(0, \Drupal::database()->query('SELECT COUNT(fid) AS total FROM {file_managed} WHERE fid = :fid', [':fid' => $new_fid])->fetchField(), 'Test new file deleted from database');
 
     // Check that empty file directory was deleted.
-    $this->assertFileNotExists('private://webform/test_element_managed_file/' . $sid . '/');
+    $this->assertFileDoesNotExist('private://webform/test_element_managed_file/' . $sid . '/');
   }
 
 }

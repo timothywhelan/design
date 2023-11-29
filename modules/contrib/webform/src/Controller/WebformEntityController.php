@@ -3,6 +3,7 @@
 namespace Drupal\webform\Controller;
 
 use Drupal\Component\Render\FormattableMarkup;
+use Drupal\Core\Cache\CacheableResponse;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -11,10 +12,10 @@ use Drupal\webform\Element\Webform as WebformElement;
 use Drupal\webform\Routing\WebformUncacheableResponse;
 use Drupal\webform\WebformInterface;
 use Drupal\webform\WebformSubmissionInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\DependencyInjection\ContainerInterface;
-use Drupal\Core\Cache\CacheableResponse;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Provides route responses for Webform entity.
@@ -89,6 +90,10 @@ class WebformEntityController extends ControllerBase implements ContainerInjecti
    */
   public function css(Request $request, WebformInterface $webform) {
     $assets = $webform->getAssets();
+    if (empty($assets['css'])) {
+      throw new NotFoundHttpException();
+    }
+
     if ($webform->access('update')) {
       return new WebformUncacheableResponse($assets['css'], 200, ['Content-Type' => 'text/css']);
     }
@@ -113,6 +118,10 @@ class WebformEntityController extends ControllerBase implements ContainerInjecti
    */
   public function javascript(Request $request, WebformInterface $webform) {
     $assets = $webform->getAssets();
+    if (empty($assets['javascript'])) {
+      throw new NotFoundHttpException();
+    }
+
     if ($webform->access('update')) {
       return new WebformUncacheableResponse($assets['javascript'], 200, ['Content-Type' => 'text/javascript']);
     }
@@ -182,6 +191,11 @@ class WebformEntityController extends ControllerBase implements ContainerInjecti
       '#webform' => $webform,
       '#source_entity' => $source_entity,
       '#webform_submission' => $webform_submission,
+      '#cache' => [
+        'contexts' => [
+          'url.query_args:token',
+        ],
+      ],
     ];
 
     // Add entities cacheable dependency.

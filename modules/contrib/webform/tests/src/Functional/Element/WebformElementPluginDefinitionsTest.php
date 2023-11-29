@@ -17,7 +17,7 @@ class WebformElementPluginDefinitionsTest extends WebformElementBrowserTestBase 
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'address',
     'captcha',
     'image',
@@ -28,6 +28,7 @@ class WebformElementPluginDefinitionsTest extends WebformElementBrowserTestBase 
     'webform_entity_print_attachment',
     'webform_image_select',
     'webform_location_geocomplete',
+    'webform_location_places',
     'webform_options_custom',
     'webform_toggles',
   ];
@@ -969,7 +970,7 @@ webform_codemirror:
   dependencies: {  }
   default_key: ''
   category: 'Advanced elements'
-  description: 'Provides a form element for editing code in a number of programming languages and markup.'
+  description: 'Provides a form element for editing code in a number of programming languages and markup. Code editing support is provided by the <a href="https://codemirror.net">CodeMirror</a> library.'
   hidden: false
   multiline: true
   composite: false
@@ -1381,8 +1382,8 @@ webform_location_places:
   deprecated_message: ''
   id: webform_location_places
   label: 'Location (Algolia Places)'
-  class: Drupal\webform\Plugin\WebformElement\WebformLocationPlaces
-  provider: webform
+  class: Drupal\webform_location_places\Plugin\WebformElement\WebformLocationPlaces
+  provider: webform_location_places
   input: true
   container: false
   root: false
@@ -1545,7 +1546,7 @@ webform_rating:
   dependencies: {  }
   default_key: ''
   category: 'Advanced elements'
-  description: 'Provides a form element to rate something using an attractive voting widget.'
+  description: 'Provides a form element to rate something using an attractive voting widget. Rating widget is provided by the <a href="https://github.com/gjunge/rateit.js">RateIt</a> library.'
   hidden: false
   multiline: false
   composite: false
@@ -1640,7 +1641,7 @@ webform_signature:
   dependencies: {  }
   default_key: ''
   category: 'Advanced elements'
-  description: 'Provides a form element to collect electronic signatures from users.'
+  description: 'Provides a form element to collect electronic signatures from users. Signature support is provided by the <a href="https://github.com/szimek/signature_pad">Signature Pad</a> library.'
   hidden: false
   multiline: false
   composite: false

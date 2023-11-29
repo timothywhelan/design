@@ -5,9 +5,9 @@
  * Provides support for highly customizable checkboxes and radio buttons.
  */
 
-use Drupal\Core\Url;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Form\OptGroup;
+use Drupal\Core\Url;
 
 /**
  * Implements hook_webform_libraries_info().
@@ -23,6 +23,7 @@ function webform_icheck_webform_libraries_info() {
     'version' => '1.0.2 ',
     'optional' => FALSE,
     'deprecated' => t('The iCheck library is not being maintained. It has been <a href=":href">deprecated</a> and will be removed in Webform 7.0.', [':href' => 'https://www.drupal.org/project/webform/issues/2931154']),
+    'license' => 'MIT',
   ];
   return $libraries;
 }

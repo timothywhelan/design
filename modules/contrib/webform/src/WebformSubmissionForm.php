@@ -7,8 +7,8 @@ use Drupal\Component\Utility\Bytes;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Cache\Cache;
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\ContentEntityForm;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Form\FormState;
 use Drupal\Core\Form\FormStateInterface;
@@ -193,6 +193,13 @@ class WebformSubmissionForm extends ContentEntityForm {
    * @see \Drupal\webform\WebformSubmissionForm::buildForm
    */
   protected $bubbleableMetadata;
+
+  /**
+   * Operation value, like 'default', add, edit, test, etc.
+   *
+   * @var string
+   */
+  protected $operation;
 
   /**
    * {@inheritdoc}
@@ -692,16 +699,18 @@ class WebformSubmissionForm extends ContentEntityForm {
     // Add a reference to the webform's id to the $form render array.
     $form['#webform_id'] = $webform->id();
 
-    // Move form settings to properties.
-    $settings_to_properties = [
-      'form_method' => '#method',
-      'form_action' => '#action',
-      'form_attributes' => '#attributes',
-    ];
-    foreach ($settings_to_properties as $setting_name => $property_name) {
-      if ($this->getWebformSetting($setting_name)) {
-        $form[$property_name] = $this->getWebformSetting($setting_name);
-      }
+    // Move form method and action to form properties.
+    $form_method = $this->getWebformSetting('form_method');
+    $form_action = $this->getWebformSetting('form_action');
+    if ($form_method && $form_action) {
+      $form['#method'] = $form_method;
+      $form['#action'] = $form_action;
+    }
+
+    // Move form attributes to form properties.
+    $form_attributes = $this->getWebformSetting('form_attributes');
+    if ($form_attributes) {
+      $form['#attributes'] = $form_attributes;
     }
 
     // Track current page name or index by setting the
@@ -713,8 +722,8 @@ class WebformSubmissionForm extends ContentEntityForm {
     //
     // @see js/webform.wizard.track.js
     $track = $this->getWebform()->getSetting('wizard_track');
-    if ($track && $this->getRequest()->isMethod('POST')) {
-      $current_page = $this->getCurrentPage($form, $form_state);
+    $current_page = $this->getCurrentPage($form, $form_state);
+    if ($track && $current_page !== '' && $this->getRequest()->isMethod('POST')) {
       if ($track === 'index') {
         $pages = $this->getWebform()->getPages($this->operation);
         $track_pages = array_flip(array_keys($pages));
@@ -896,8 +905,29 @@ class WebformSubmissionForm extends ContentEntityForm {
 
     // Exit if elements are broken, usually occurs when elements YAML is edited
     // directly in the export config file.
-    if (!$webform_submission->getWebform()->getElementsInitialized()) {
-      return $this->getMessageManager()->append($form, WebformMessageManagerInterface::FORM_EXCEPTION_MESSAGE, 'warning');
+    if (!$webform->getElementsInitialized()) {
+      // Display helpful message to user who can add elements to the webform.
+      if (empty($webform->getElementsDecoded()) && $webform->access('update')) {
+        $form['webform_message'][] = [
+          '#type' => 'webform_message',
+          '#message_type' => 'warning',
+          '#message_message' => [
+            'message' => [
+              '#markup' => $this->t('This webform has no elements added to it.'),
+              '#suffix' => '<br/>',
+            ],
+            'link' => [
+              '#type' => 'link',
+              '#title' => $this->t('Please add elements to this webform.'),
+              '#url' => $webform->toUrl('edit-form'),
+            ],
+          ],
+        ];
+        return $form;
+      }
+      else {
+        return $this->getMessageManager()->append($form, WebformMessageManagerInterface::FORM_EXCEPTION_MESSAGE, 'warning');
+      }
     }
 
     // Exit if submission is locked.
@@ -1072,7 +1102,7 @@ class WebformSubmissionForm extends ContentEntityForm {
     if ($this->isGet()
       && $this->isRoute('webform.canonical')
       && $this->getRouteMatch()->getRawParameter('webform') === $webform->id()
-      && !$this->getWebform()->getSetting('page')) {
+      && !$this->getWebform()->hasPage()) {
       $this->getMessageManager()->display(WebformMessageManagerInterface::ADMIN_PAGE, 'info');
     }
 
@@ -1726,6 +1756,13 @@ class WebformSubmissionForm extends ContentEntityForm {
    *   The current state of the form.
    */
   public function autosave(array &$form, FormStateInterface $form_state) {
+    // Make sure the submission exists before validating it.
+    /** @var \Drupal\webform\WebformSubmissionInterface $webform_submission */
+    $webform_submission = $this->getEntity();
+    if ($webform_submission->id() && !WebformSubmission::load($webform_submission->id())) {
+      return;
+    }
+
     if ($form_state->hasAnyErrors()) {
       if ($this->draftEnabled() && $this->getWebformSetting('draft_auto_save') && !$this->entity->isCompleted()) {
         $form_state->set('in_draft', TRUE);
@@ -1824,6 +1861,14 @@ class WebformSubmissionForm extends ContentEntityForm {
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
+    // Make sure the submission exists before validating it.
+    /** @var \Drupal\webform\WebformSubmissionInterface $webform_submission */
+    $webform_submission = $this->getEntity();
+    if ($webform_submission->id() && !WebformSubmission::load($webform_submission->id())) {
+      $form_state->setErrorByName(NULL, $this->t('An error occurred while trying to validate the submission. Please save your work and reload this page.'));
+      return;
+    }
+
     parent::validateForm($form, $form_state);
 
     // Disable inline form error when performing validation via the API.
@@ -2047,7 +2092,7 @@ class WebformSubmissionForm extends ContentEntityForm {
     $file_limit = $this->getWebform()->getSetting('form_file_limit')
       ?: $this->configFactory->get('webform.settings')->get('settings.default_form_file_limit')
       ?: '';
-    $file_limit = Bytes::toInt($file_limit);
+    $file_limit = Bytes::toNumber($file_limit);
     if (!$file_limit) {
       return;
     }
@@ -2210,7 +2255,7 @@ class WebformSubmissionForm extends ContentEntityForm {
    */
   protected function getCurrentPage(array &$form, FormStateInterface $form_state) {
     if ($form_state->get('current_page') === NULL) {
-      $pages = $this->getWebform()->getPages($this->operation);
+      $pages = $this->getWebform()->getPages($this->operation, $this->entity);
       if (empty($pages)) {
         $form_state->set('current_page', '');
       }
@@ -2314,7 +2359,9 @@ class WebformSubmissionForm extends ContentEntityForm {
       $preview_attributes->addClass('webform-preview');
       $form['#title'] = PlainTextOutput::renderFromHtml($this->getWebformSetting('preview_title'));
       $form['preview'] = [
-        '#type' => 'container',
+        '#type' => $this->getWebformSetting('wizard_page_type', 'container'),
+        '#title' => $this->getWebformSetting('preview_label'),
+        '#title_tag' => $this->getWebformSetting('wizard_page_title_tag', ''),
         '#attributes' => $preview_attributes,
         // Progress bar is -20.
         '#weight' => -10,
@@ -2356,7 +2403,7 @@ class WebformSubmissionForm extends ContentEntityForm {
    *   A URL object.
    */
   protected function setTrustedRedirectUrl(FormStateInterface $form_state, Url $url) {
-    $form_state->setResponse(new TrustedRedirectResponse($url->setAbsolute()->toString()));
+    $form_state->setResponse(new TrustedRedirectResponse($url->toString()));
   }
 
   /**
@@ -2620,13 +2667,10 @@ class WebformSubmissionForm extends ContentEntityForm {
       $prepopulate_data = $this->getRequest()->query->all();
     }
     else {
-      $prepopulate_data = [];
-      $elements = $this->getWebform()->getElementsPrepopulate();
-      foreach ($elements as $element_key) {
-        if ($this->getRequest()->query->has($element_key)) {
-          $prepopulate_data[$element_key] = $this->getRequest()->query->get($element_key);
-        }
-      }
+      $prepopulate_data = array_intersect_key(
+        $this->getRequest()->query->all(),
+        $this->getWebform()->getElementsPrepopulate()
+      );
     }
 
     // Validate prepopulate data.
@@ -3107,7 +3151,8 @@ class WebformSubmissionForm extends ContentEntityForm {
    *   TRUE the submission form is being embedded in a share page.
    */
   protected function isSharePage() {
-    return (strpos($this->getRouteMatch()->getRouteName(), 'entity.webform.share_page') === 0);
+    $route_name = $this->getRouteMatch()->getRouteName();
+    return ($route_name && strpos($route_name, 'entity.webform.share_page') === 0);
   }
 
   /* ************************************************************************ */

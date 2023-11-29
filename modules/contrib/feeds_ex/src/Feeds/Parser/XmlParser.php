@@ -300,10 +300,13 @@ class XmlParser extends ParserBase implements ContainerFactoryPluginInterface {
     libxml_clear_errors();
     $this->handleXmlErrors = libxml_use_internal_errors(TRUE);
 
-    // Only available in PHP >= 5.2.11.
+    // Only available in PHP >= 5.2.11 and < PHP 9.0. Since PHP 8.0 it is
+    // deprecated. This mitigates a security issue in libxml older than version
+    // 2.9.0.
     // See http://symfony.com/blog/security-release-symfony-2-0-17-released for
     // details.
-    if (function_exists('libxml_disable_entity_loader')) {
+    // @todo remove when Drupal 9 (and thus PHP 7) is no longer supported.
+    if (function_exists('libxml_disable_entity_loader') && \PHP_VERSION_ID < 80000) {
       $this->entityLoader = libxml_disable_entity_loader(TRUE);
     }
   }
@@ -316,7 +319,8 @@ class XmlParser extends ParserBase implements ContainerFactoryPluginInterface {
 
     libxml_clear_errors();
     libxml_use_internal_errors($this->handleXmlErrors);
-    if (function_exists('libxml_disable_entity_loader')) {
+    // @todo remove when Drupal 9 (and thus PHP 7) is no longer supported.
+    if (function_exists('libxml_disable_entity_loader') && \PHP_VERSION_ID < 80000) {
       libxml_disable_entity_loader($this->entityLoader);
     }
   }

@@ -104,7 +104,7 @@ class WebformOptionsHelper {
    *   An array containing an option's text and description.
    */
   public static function splitOption($text) {
-    return explode(static::DESCRIPTION_DELIMITER, $text);
+    return explode(static::DESCRIPTION_DELIMITER, $text, 2);
   }
 
   /**
@@ -324,8 +324,13 @@ class WebformOptionsHelper {
    */
   public static function decodeConfig(array $config) {
     $options = [];
-    foreach ($config as $option) {
-      $options[$option['value']] = $option['text'];
+    foreach ($config as $index => $option) {
+      if (is_array($option)) {
+        $options[$option['value']] = $option['text'];
+      }
+      else {
+        $options[$index] = $option;
+      }
     }
     return $options;
   }

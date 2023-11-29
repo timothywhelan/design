@@ -146,6 +146,55 @@ trait FeedsCommonTrait {
   }
 
   /**
+   * Asserts that the given number of terms exist.
+   *
+   * @param int $expected_term_count
+   *   The expected number of terms in the taxonomy_term_data table.
+   * @param string $message
+   *   (optional) The message to assert.
+   */
+  protected function assertTermCount($expected_term_count, $message = '') {
+    if (!$message) {
+      $message = '@expected terms have been created (actual: @count).';
+    }
+
+    $term_count = $this->container->get('database')
+      ->select('taxonomy_term_data')
+      ->fields('taxonomy_term_data', [])
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+    $this->assertEquals($expected_term_count, $term_count, strtr($message, [
+      '@expected' => $expected_term_count,
+      '@count' => $term_count,
+    ]));
+  }
+
+  /**
+   * Asserts that the given number of queue items exist for the specified queue.
+   *
+   * @param int $expected
+   *   The expected number of queue items.
+   * @param string $queue_name
+   *   The queue to inspect the number of items for.
+   * @param string $message
+   *   (optional) The message to assert.
+   */
+  protected function assertQueueItemCount(int $expected, string $queue_name, string $message = '') {
+    if (!$message) {
+      $message = '@expected queue items exist on @queue (actual: @count).';
+    }
+
+    $queue = $this->container->get('queue')->get($queue_name);
+    $item_count = $queue->numberOfItems();
+    $this->assertEquals($expected, $item_count, strtr($message, [
+      '@expected' => $expected,
+      '@queue' => $queue_name,
+      '@count' => $item_count,
+    ]));
+  }
+
+  /**
    * Returns the absolute path to the Drupal root.
    *
    * @return string
@@ -188,11 +237,6 @@ trait FeedsCommonTrait {
    *   If the module does not exist.
    */
   protected function getModulePath(string $module_name): string {
-    // @todo Remove drupal_get_path() when Drupal 9.2 is no longer supported.
-    if (!\Drupal::hasService('extension.list.module')) {
-      return drupal_get_path('module', $module_name);
-    }
-
     return \Drupal::service('extension.list.module')->getPath($module_name);
   }
 
@@ -220,6 +264,28 @@ trait FeedsCommonTrait {
 
     // Process all items of queue.
     while ($item = $queue->claimItem()) {
+      $queue_worker->processItem($item->data);
+      $queue->deleteItem($item);
+    }
+  }
+
+  /**
+   * Runs specified number of items from one queue.
+   *
+   * @param string $queue_name
+   *   The name of the queue to run all items from.
+   * @param int $number
+   *   The number of items to process from the queue.
+   */
+  protected function runQueue(string $queue_name, int $number) {
+    // Create queue.
+    $queue = $this->container->get('queue')->get($queue_name);
+    $queue->createQueue();
+    $queue_worker = $this->container->get('plugin.manager.queue_worker')->createInstance($queue_name);
+
+    // Process all items of the queue.
+    for ($i = 0; $i < $number; $i++) {
+      $item = $queue->claimItem();
       $queue_worker->processItem($item->data);
       $queue->deleteItem($item);
     }

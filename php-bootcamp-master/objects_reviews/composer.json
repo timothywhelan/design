@@ -1,9 +1,0 @@
-{
-    "name": "bitwisdom/objects_reviews",
-    "require": {},
-    "autoload": {
-        "psr-4": {
-            "Bitwisdom\\Reviews\\": "src/"
-        }
-    }
-}

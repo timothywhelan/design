@@ -1,0 +1,336 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- copyright 2003 :: Atlanta Designer Tim Whelan / creative technology :: all rights reserved -->
+
+
+<html>
+
+<head>
+
+<title>Browser Resizer</title>
+
+<script language="JavaScript">
+
+
+
+//sniffer
+
+	function isWindows() {
+
+		return (navigator.appVersion.indexOf("Win") != -1)
+
+		}
+
+	function isMac() {
+
+		return (navigator.appVersion.indexOf("Mac") != -1)
+
+		}
+
+	function isNav() {
+
+		return (navigator.appName == "Netscape")
+
+		}
+
+	function getVersion() {
+
+		return (navigator.appVersion.charAt(0))
+
+		}
+
+	function isNav6Min() {
+
+		return (parseInt(navigator.appVersion.charAt(0)) >= 5)
+
+		}
+
+	var h=0;
+
+	var w=0;
+
+Array.prototype.h="";
+
+Array.prototype.w="";
+
+		
+
+// size options
+
+	var sizes=new Array();
+
+	sizes[0]=["640x480"]
+
+	sizes[0].w=640;
+
+	sizes[0].h=480;
+
+	sizes[1]=['800x600']
+
+	sizes[1].w=800;
+
+	sizes[1].h=600;
+
+	sizes[2]=['1024x768']
+
+	sizes[2].w=1024;
+
+	sizes[2].h=768;
+
+	sizes[3]=['1152x870']
+
+	sizes[3].w=1152;
+
+	sizes[3].h=870;
+
+	sizes[4]=['1280x1024']
+
+	sizes[4].w=1280;
+
+	sizes[4].h=1024;
+
+
+
+
+
+//sizer
+
+	function setFields() {
+
+		var x=document.resizeForm.sizeList.selectedIndex;
+
+		document.resizeForm.height.value=sizes[x].h;
+
+		document.resizeForm.width.value=sizes[x].w;
+
+	}
+
+
+
+//sizer
+
+	function sizeMe() {
+
+		if (document.resizeForm.width.value>0) w= parseInt(document.resizeForm.width.value);
+
+		else alert('You must enter a width.');
+
+		if (document.resizeForm.height.value>0) h= parseInt(document.resizeForm.height.value);
+
+		else alert('You must enter a height.');
+
+		if(isWindows()) {
+
+			if(isNav()) {
+
+				if(isNav6Min()) {
+
+					w+=8;
+
+					h-=20;
+
+				}
+
+				else {
+
+					w-=6;
+
+					h-=140;
+
+				}
+
+			}
+
+			else {
+
+				w+=8;
+
+				h-=20;
+
+			}
+
+		}
+
+		else {
+
+			if(isNav()) {
+
+				if(isNav6Min()) {
+
+					w-=10;
+
+					h-=30;
+
+				}
+
+				else {
+
+					w-=24;
+
+					h-=120;
+
+				}
+
+			}
+
+			else {
+
+				w-=10;
+
+				h-=30;
+
+			}
+
+		}
+
+		window.resizeTo(w,h);
+
+	}
+
+	
+
+	function sizePrev() {
+
+		sizeMe();
+
+		history.back();
+
+	}
+
+</script>
+
+<style type="text/css">
+
+<!--
+
+body,p,select,option,input,td {  font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 11px}
+
+h1 {  font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 18px; line-height: 18px; font-weight: bold; color: #FFFFFF}
+
+.small {  font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 4px; line-height: 5px}
+
+-->
+
+</style>
+
+</head>
+
+<body text="#000000" link="#FFFFFF" vlink="#FFFFFF" alink="#FFFFFF" leftmargin="0" topmargin="0" marginwidth="0" marginheight="0" bgcolor="#0099CC">
+
+<table width="100%" border="0" cellspacing="0" cellpadding="5">
+
+  <tr bgcolor="#006699"> 
+
+    <td>&nbsp;</td>
+
+    <td width="99%" bgcolor="#006699" valign="middle"> 
+
+      <h1>Browser Resizer</h1>
+
+    </td>
+
+    <td>&nbsp;</td>
+
+    <td>&nbsp;<br>
+
+      <a href="JavaScript: void history.back()">&lt;&lt;&nbsp;back</a><br>
+
+      &nbsp;</td>
+
+    <td>&nbsp;</td>
+
+    <td>&nbsp;<br>
+
+      <a href="http://my.bls.com/">myBellSouth</a><br>
+
+      &nbsp;</td>
+
+    <td>&nbsp;</td>
+
+  </tr>
+
+  <tr> 
+
+    <td>&nbsp;</td>
+
+    <td colspan="5">Resize this window to match dimensions of maximized window 
+
+      at selected resolution.</td>
+
+    <td>&nbsp;</td>
+
+  </tr>
+
+</table>
+
+<form name="resizeForm">
+
+  <table width="100%" border="0" cellspacing="0" cellpadding="5">
+
+    <tr> 
+
+      <td>&nbsp;</td>
+
+      <td> 
+
+        <select name="sizeList" onChange="setFields()">
+
+          <script language="JavaScript">
+
+			for (i=0;i<sizes.length;i++) {
+
+				document.writeln('<option>' + sizes[i] + '</option>');
+
+			}
+
+		  </script>
+
+          <option selected>presets</option>
+
+        </select>
+
+      </td>
+
+      <td nowrap>width:&nbsp; 
+
+        <input name="width" size="5" maxlength="4" value=800>
+
+      </td>
+
+      <td nowrap>height:&nbsp; 
+
+        <input name="height" size="5" maxlength="4" value=600>
+
+      </td>
+
+      <td width="99%">&nbsp;</td>
+
+    </tr>
+
+    <tr> 
+
+      <td>&nbsp;</td>
+
+      <td>&nbsp;</td>
+
+      <td colspan="2" nowrap> 
+
+        <input type="button" name="ResizeMe" value="ResizeMe" onClick="sizeMe()">
+
+        &nbsp;&nbsp; 
+
+        <input type="button" name="ResizePrevious" value="ResizePrevious" onClick="sizePrev()">
+
+      </td>
+
+      <td width="99%">&nbsp;</td>
+
+    </tr>
+
+  </table>
+
+</form>
+
+</body>
+
+</html>
