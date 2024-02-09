@@ -70,7 +70,7 @@ class YouTubeDefaultWidget extends WidgetBase {
     $element['input'] = $element + [
       '#type' => 'textfield',
       '#placeholder' => $this->getSetting('placeholder_url'),
-      '#default_value' => isset($items[$delta]->input) ? $items[$delta]->input : NULL,
+      '#default_value' => $items[$delta]->input ?? NULL,
       '#maxlength' => 255,
       '#element_validate' => [[$this, 'validateInput']],
     ];

@@ -3,6 +3,7 @@
 namespace Drupal\Tests\youtube\Functional;
 
 use Drupal\Tests\BrowserTestBase;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 
 /**
  * Tests youtube field widgets and formatters.
@@ -11,10 +12,12 @@ use Drupal\Tests\BrowserTestBase;
  */
 class YouTubeTest extends BrowserTestBase {
 
+  use StringTranslationTrait;
+
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['node', 'youtube', 'field_ui', 'image', 'file'];
+  protected static $modules = ['node', 'youtube', 'field_ui', 'image', 'file'];
 
   /**
    * {@inheritdoc}
@@ -35,7 +38,7 @@ class YouTubeTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
 
     // Create Basic page and Article node types.
@@ -98,7 +101,7 @@ class YouTubeTest extends BrowserTestBase {
 
     // Display creation form.
     $this->drupalGet('node/add/article');
-    $this->assertFieldByName("{$field_name}[0][input]", '', t('Video input field is displayed'));
+    $this->assertSession()->fieldValueEquals("{$field_name}[0][input]", '');
 
     // Verify that a valid URL can be submitted.
     $video_id = 'T5y3dJYHb_A';
@@ -107,8 +110,8 @@ class YouTubeTest extends BrowserTestBase {
       "title[0][value]" => "Test1",
       "{$field_name}[0][input]" => $value,
     ];
-    $this->drupalPostForm(NULL, $edit, t('Save'));
-    $this->assertText(t('Article Test1 has been created.'));
+    $this->submitForm($edit, $this->t('Save'));
+    $this->assertSession()->pageTextContains($this->t('Article Test1 has been created.'));
 
     $video_id = 'T5y3dJYHb_A';
 
@@ -117,12 +120,12 @@ class YouTubeTest extends BrowserTestBase {
     $subject = $this->getSession()->getPage()->getContent();
     $pattern = '/<img .*src="(.*?' . $video_id . '[\/\d+]*\.[jpg].*?)"/s';
     preg_match($pattern, $subject, $matches);
-    $this->assertPattern($pattern);
+    $this->assertSession()->responseMatches($pattern);
     $img_url = $matches[1];
 
     // Verify that the remote image is created.
     $this->drupalGet($img_url);
-    $this->assertResponse(200, 'Remote image downloaded');
+    $this->assertSession()->statusCodeEquals(200, 'Remote image downloaded');
   }
 
   /**
@@ -161,7 +164,7 @@ class YouTubeTest extends BrowserTestBase {
 
     // Display creation form.
     $this->drupalGet('node/add/article');
-    $this->assertFieldByName("{$field_name}[0][input]", '', t('Video input field is displayed'));
+    $this->assertSession()->fieldValueEquals("{$field_name}[0][input]", '');
 
     // Verify that a valid URL can be submitted.
     $video_id = 'T5y3dJYHb_A';
@@ -171,15 +174,15 @@ class YouTubeTest extends BrowserTestBase {
       "title[0][value]" => 'Test',
       "{$field_name}[0][input]" => $value,
     ];
-    $this->drupalPostForm(NULL, $edit, t('Save'));
-    $this->assertText(t('Article Test has been created.'));
-    $this->assertRaw($embed_value);
+    $this->submitForm($edit, $this->t('Save'));
+    $this->assertSession()->pageTextContains($this->t('Article Test has been created.'));
+    $this->assertSession()->responseContains($embed_value);
 
     // Verify that the video is displayed.
     $pattern = '<iframe.*src="' . $embed_value;
     $pattern = str_replace('/', '\/', $pattern);
     $pattern = '/' . $pattern . '/s';
-    $this->assertPattern($pattern);
+    $this->assertSession()->responseMatches($pattern);
 
     // Verify that invalid URLs cannot be submitted.
     $this->drupalGet('node/add/article');
@@ -188,8 +191,8 @@ class YouTubeTest extends BrowserTestBase {
       "title[0][value]" => 'Test1',
       "{$field_name}[0][input]" => $value,
     ];
-    $this->drupalPostForm(NULL, $edit, t('Save'));
-    $this->assertText(t('Please provide a valid YouTube URL.'));
+    $this->submitForm($edit, $this->t('Save'));
+    $this->assertSession()->pageTextContains($this->t('Please provide a valid YouTube URL.'));
   }
 
 }

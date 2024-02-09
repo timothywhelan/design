@@ -112,7 +112,7 @@ class YouTubeThumbFormatter extends FormatterBase {
         '#video_id' => $item->video_id,
         '#entity_title' => $items->getEntity()->label(),
         '#image_style' => $this->getSetting('image_style'),
-        '#image_link' => isset($url) ? $url : '',
+        '#image_link' => $url ?? '',
       ];
     }
 

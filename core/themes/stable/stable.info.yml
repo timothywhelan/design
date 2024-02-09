@@ -4,7 +4,7 @@ description: A default base theme using Drupal 8.0.0's core markup and CSS.
 package: Core
 version: VERSION
 base theme: false
-hidden: true
+hidden: false
 lifecycle: deprecated
 lifecycle_link: https://www.drupal.org/project/drupal/issues/3308890
 
