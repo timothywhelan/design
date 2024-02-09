@@ -126,7 +126,10 @@ class YouTubeFormatter extends FormatterBase {
         break;
       }
     }
-    $summary[] = $this->t('YouTube video: @youtube_size@cp', ['@youtube_size' => $youtube_size, '@cp' => $cp]);
+    $summary[] = $this->t('YouTube video: @youtube_size@cp', [
+      '@youtube_size' => $youtube_size,
+      '@cp' => $cp,
+    ]);
     return $summary;
   }
 

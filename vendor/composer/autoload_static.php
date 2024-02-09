@@ -41,7 +41,6 @@ class ComposerStaticInit7ef0c13739069e3f71bc97692904d4e1
         '6db5533840cb1ae1bc049452845aa88e' => __DIR__ . '/../..' . '/core/includes/guzzle_php81_shim.php',
         '9b38cf48e83f5d8f60375221cd213eee' => __DIR__ . '/..' . '/phpstan/phpstan/bootstrap.php',
         'c9d07b32a2e02bc0fc582d4f0c1b56cc' => __DIR__ . '/..' . '/laminas/laminas-servicemanager/src/autoload.php',
-        '9e4824c5afbdc1482b6025ce3d4dfde8' => __DIR__ . '/..' . '/league/csv/src/functions_include.php',
         '73321c0e02b4d45ae9c8366042d80de4' => __DIR__ . '/..' . '/arthurkushman/query-path/src/qp_functions.php',
         'b067bc7112e384b61c701452d53a14a8' => __DIR__ . '/..' . '/mtdowling/jmespath.php/src/JmesPath.php',
     );
@@ -118,7 +117,6 @@ class ComposerStaticInit7ef0c13739069e3f71bc97692904d4e1
         ),
         'L' => 
         array (
-            'League\\Csv\\' => 11,
             'Laminas\\Text\\' => 13,
             'Laminas\\Stdlib\\' => 15,
             'Laminas\\ServiceManager\\' => 23,
@@ -350,10 +348,6 @@ class ComposerStaticInit7ef0c13739069e3f71bc97692904d4e1
         'Masterminds\\' => 
         array (
             0 => __DIR__ . '/..' . '/masterminds/html5/src',
-        ),
-        'League\\Csv\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/league/csv/src',
         ),
         'Laminas\\Text\\' => 
         array (

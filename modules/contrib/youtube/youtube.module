@@ -353,7 +353,7 @@ function youtube_get_remote_image($video_id = NULL, $force_small = FALSE) {
   $destination = youtube_build_thumbnail_uri($video_id);
 
   // Save the thumbnail and add to Drupal managed files.
-  $file = file_save_data($data, $destination, FileSystemInterface::EXISTS_REPLACE);
+  $file = \Drupal::service('file.repository')->writeData($data, $destination, FileSystemInterface::EXISTS_REPLACE);
 
   if (!$file) {
     \Drupal::service('logger.factory')->get('youtube')->error(
@@ -416,7 +416,7 @@ function youtube_thumb_delete_all($form, &$form_state) {
 function youtube_build_thumbnail_uri($video_id = NULL) {
   $youtube_thumb_dir = \Drupal::config('youtube.settings')->get('youtube_thumb_dir');
   $youtube_thumb_dir = empty($youtube_thumb_dir) ? 'youtube' : $youtube_thumb_dir;
-  $youtube_thumb_uri = file_build_uri($youtube_thumb_dir);
+  $youtube_thumb_uri = \Drupal::service('stream_wrapper_manager')->normalizeUri(\Drupal::config('system.file')->get('default_scheme') . ('://' . $youtube_thumb_dir));
 
   if ($video_id) {
     return $youtube_thumb_uri . '/' . $video_id . '.jpg';
@@ -563,7 +563,7 @@ function youtube_tokens($type, $tokens, array $data = [], array $options = []) {
           if ($video_id = $field->video_id) {
             $file_uri = youtube_build_thumbnail_uri($video_id);
             if (file_exists($file_uri) || youtube_get_remote_image($video_id)) {
-              $replacements[$original] = file_create_url($file_uri);
+              $replacements[$original] = \Drupal::service('file_url_generator')->generateAbsoluteString($file_uri);
 
               if ($style_name = \Drupal::config('youtube.settings')->get('youtube_thumb_token_image_style')) {
                 $image_style = ImageStyle::load($style_name);
@@ -571,7 +571,7 @@ function youtube_tokens($type, $tokens, array $data = [], array $options = []) {
                 if (!file_exists($derivative_uri)) {
                   $image_style->createDerivative($file_uri, $derivative_uri);
                 }
-                $replacements[$original] = file_create_url($derivative_uri);
+                $replacements[$original] = \Drupal::service('file_url_generator')->generateAbsoluteString($derivative_uri);
               }
             }
           }
