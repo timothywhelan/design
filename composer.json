@@ -47,6 +47,7 @@
         "drupal/tamper": "^1.0@alpha",
         "drupal/thex": "^9.1",
         "drupal/token": "^1.9",
+        "drupal/twig_tweak": "^3.3",
         "drupal/typed_data": "^1.0@beta",
         "drupal/upgrade_status": "^4.0",
         "drupal/user_csv_import": "^2.0",
