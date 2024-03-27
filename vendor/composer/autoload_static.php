@@ -74,6 +74,8 @@ class ComposerStaticInit7ef0c13739069e3f71bc97692904d4e1
             'Symfony\\Component\\DependencyInjection\\' => 38,
             'Symfony\\Component\\Console\\' => 26,
             'Symfony\\Bridge\\PsrHttpMessage\\' => 30,
+            'Svg\\' => 4,
+            'Sabberworm\\CSS\\' => 15,
         ),
         'R' => 
         array (
@@ -121,6 +123,7 @@ class ComposerStaticInit7ef0c13739069e3f71bc97692904d4e1
         ),
         'F' => 
         array (
+            'FontLib\\' => 8,
             'Flow\\JSONPath\\' => 14,
         ),
         'E' => 
@@ -133,6 +136,7 @@ class ComposerStaticInit7ef0c13739069e3f71bc97692904d4e1
             'Drupal\\Composer\\Plugin\\Scaffold\\' => 32,
             'Drupal\\Composer\\Plugin\\ProjectMessage\\' => 38,
             'Drupal\\Component\\' => 17,
+            'Dompdf\\' => 7,
             'Doctrine\\Deprecations\\' => 22,
             'Doctrine\\Common\\Lexer\\' => 22,
             'Doctrine\\Common\\Collections\\' => 28,
@@ -286,6 +290,14 @@ class ComposerStaticInit7ef0c13739069e3f71bc97692904d4e1
         array (
             0 => __DIR__ . '/..' . '/symfony/psr-http-message-bridge',
         ),
+        'Svg\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/phenx/php-svg-lib/src/Svg',
+        ),
+        'Sabberworm\\CSS\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/sabberworm/php-css-parser/src',
+        ),
         'Recurr\\' => 
         array (
             0 => __DIR__ . '/..' . '/simshaun/recurr/src/Recurr',
@@ -379,6 +391,10 @@ class ComposerStaticInit7ef0c13739069e3f71bc97692904d4e1
         array (
             0 => __DIR__ . '/..' . '/guzzlehttp/guzzle/src',
         ),
+        'FontLib\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/phenx/php-font-lib/src/FontLib',
+        ),
         'Flow\\JSONPath\\' => 
         array (
             0 => __DIR__ . '/..' . '/softcreatr/jsonpath/src',
@@ -402,6 +418,10 @@ class ComposerStaticInit7ef0c13739069e3f71bc97692904d4e1
         'Drupal\\Component\\' => 
         array (
             0 => __DIR__ . '/../..' . '/core/lib/Drupal/Component',
+        ),
+        'Dompdf\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/dompdf/dompdf/src',
         ),
         'Doctrine\\Deprecations\\' => 
         array (
@@ -466,6 +486,7 @@ class ComposerStaticInit7ef0c13739069e3f71bc97692904d4e1
         'DateMalformedStringException' => __DIR__ . '/..' . '/symfony/polyfill-php83/Resources/stubs/DateMalformedStringException.php',
         'DateObjectError' => __DIR__ . '/..' . '/symfony/polyfill-php83/Resources/stubs/DateObjectError.php',
         'DateRangeError' => __DIR__ . '/..' . '/symfony/polyfill-php83/Resources/stubs/DateRangeError.php',
+        'Dompdf\\Cpdf' => __DIR__ . '/..' . '/dompdf/dompdf/lib/Cpdf.php',
         'Drupal' => __DIR__ . '/../..' . '/core/lib/Drupal.php',
         'DrupalFinder\\DrupalFinder' => __DIR__ . '/..' . '/webflo/drupal-finder/src/DrupalFinder.php',
         'Drupal\\Component\\DependencyInjection\\Container' => __DIR__ . '/../..' . '/core/lib/Drupal/Component/DependencyInjection/Container.php',
