@@ -3,7 +3,7 @@
         'name' => 'drupal/legacy-project',
         'pretty_version' => 'dev-master',
         'version' => 'dev-master',
-        'reference' => '856e4065bbd7317a44cf0b2a1f8faee874243f95',
+        'reference' => 'f7c7d14d4fb9ecd5ca1f4aa2afbc77bf1d677966',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -94,6 +94,15 @@
             'reference' => '861c870e8b75f7c8f69c146c7f89cc1c0f1b49b6',
             'type' => 'library',
             'install_path' => __DIR__ . '/../doctrine/lexer',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+        'dompdf/dompdf' => array(
+            'pretty_version' => 'v2.0.4',
+            'version' => '2.0.4.0',
+            'reference' => '093f2d9739cec57428e39ddadedfd4f3ae862c0f',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../dompdf/dompdf',
             'aliases' => array(),
             'dev_requirement' => false,
         ),
@@ -340,6 +349,15 @@
             'aliases' => array(),
             'dev_requirement' => false,
         ),
+        'drupal/entity_print' => array(
+            'pretty_version' => '2.13.0',
+            'version' => '2.13.0.0',
+            'reference' => '8.x-2.13',
+            'type' => 'drupal-module',
+            'install_path' => __DIR__ . '/../../modules/contrib/entity_print',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
         'drupal/extlink' => array(
             'pretty_version' => '1.7.0',
             'version' => '1.7.0.0',
@@ -496,7 +514,7 @@
         'drupal/legacy-project' => array(
             'pretty_version' => 'dev-master',
             'version' => 'dev-master',
-            'reference' => '856e4065bbd7317a44cf0b2a1f8faee874243f95',
+            'reference' => 'f7c7d14d4fb9ecd5ca1f4aa2afbc77bf1d677966',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
@@ -805,6 +823,24 @@
             'aliases' => array(),
             'dev_requirement' => false,
         ),
+        'phenx/php-font-lib' => array(
+            'pretty_version' => '0.5.6',
+            'version' => '0.5.6.0',
+            'reference' => 'a1681e9793040740a405ac5b189275059e2a9863',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../phenx/php-font-lib',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+        'phenx/php-svg-lib' => array(
+            'pretty_version' => '0.5.3',
+            'version' => '0.5.3.0',
+            'reference' => '0e46722c154726a5f9ac218197ccc28adba16fcf',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../phenx/php-svg-lib',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
         'phpstan/phpstan' => array(
             'pretty_version' => '1.10.57',
             'version' => '1.10.57.0',
@@ -853,8 +889,8 @@
         'psr/container-implementation' => array(
             'dev_requirement' => false,
             'provided' => array(
-                0 => '1.1|2.0',
-                1 => '^1.1 || ^2.0',
+                0 => '^1.1 || ^2.0',
+                1 => '1.1|2.0',
             ),
         ),
         'psr/event-dispatcher' => array(
@@ -952,6 +988,15 @@
             'replaced' => array(
                 0 => 'v1.10.14',
             ),
+        ),
+        'sabberworm/php-css-parser' => array(
+            'pretty_version' => 'v8.5.1',
+            'version' => '8.5.1.0',
+            'reference' => '4a3d572b0f8b28bb6fd016ae8bbfc445facef152',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../sabberworm/php-css-parser',
+            'aliases' => array(),
+            'dev_requirement' => false,
         ),
         'sebastian/diff' => array(
             'pretty_version' => '4.0.5',
