@@ -52,8 +52,8 @@ class PrintBuilder implements PrintBuilderInterface {
   /**
    * {@inheritdoc}
    */
-  public function deliverPrintable(array $entities, PrintEngineInterface $print_engine, $force_download = FALSE, $use_default_css = TRUE) {
-    $renderer = $this->prepareRenderer($entities, $print_engine, $use_default_css);
+  public function deliverPrintable(array $entities, PrintEngineInterface $print_engine, $force_download = FALSE, $use_default_css = TRUE, $optimize_css = TRUE) {
+    $renderer = $this->prepareRenderer($entities, $print_engine, $use_default_css, $optimize_css);
 
     // Allow other modules to alter the generated Print object.
     $this->dispatcher->dispatch(new PreSendPrintEvent($print_engine, $entities), PrintEvents::PRE_SEND);
@@ -83,8 +83,8 @@ class PrintBuilder implements PrintBuilderInterface {
   /**
    * {@inheritdoc}
    */
-  public function savePrintable(array $entities, PrintEngineInterface $print_engine, $scheme = 'public', $filename = FALSE, $use_default_css = TRUE) {
-    $renderer = $this->prepareRenderer($entities, $print_engine, $use_default_css);
+  public function savePrintable(array $entities, PrintEngineInterface $print_engine, $scheme = 'public', $filename = FALSE, $use_default_css = TRUE, $optimize_css = TRUE) {
+    $renderer = $this->prepareRenderer($entities, $print_engine, $use_default_css, $optimize_css);
 
     // Allow other modules to alter the generated Print object.
     $this->dispatcher->dispatch(new PreSendPrintEvent($print_engine, $entities), PrintEvents::PRE_SEND);
@@ -109,11 +109,13 @@ class PrintBuilder implements PrintBuilderInterface {
    *   The print engine.
    * @param bool $use_default_css
    *   TRUE if we want the default CSS included.
+   * @param bool $optimize_css
+   *   TRUE to optimise the CSS otherwise FALSE.
    *
    * @return \Drupal\entity_print\Renderer\RendererInterface
    *   A print renderer.
    */
-  protected function prepareRenderer(array $entities, PrintEngineInterface $print_engine, $use_default_css) {
+  protected function prepareRenderer(array $entities, PrintEngineInterface $print_engine, $use_default_css, $optimize_css = TRUE) {
     if (empty($entities)) {
       throw new \InvalidArgumentException('You must pass at least 1 entity');
     }
@@ -129,7 +131,7 @@ class PrintBuilder implements PrintBuilderInterface {
       '#attached' => [],
     ];
 
-    $print_engine->addPage($renderer->generateHtml($entities, $render, $use_default_css, TRUE));
+    $print_engine->addPage($renderer->generateHtml($entities, $render, $use_default_css, $optimize_css));
 
     return $renderer;
   }

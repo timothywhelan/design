@@ -125,6 +125,12 @@ class SettingsForm extends ConfigFormBase {
       '#description' => $this->t('Provides some very basic font and padding styles.'),
       '#default_value' => $config->get('default_css'),
     ];
+    $form['entity_print']['optimize_css'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Enable CSS Optimization'),
+      '#description' => $this->t('Use optimized/compressed CSS.'),
+      '#default_value' => $config->get('optimize_css') === NULL ? TRUE : $config->get('optimize_css'),
+    ];
     $form['entity_print']['force_download'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Force Download'),
@@ -240,6 +246,7 @@ class SettingsForm extends ConfigFormBase {
     $values = $form_state->getValues();
     $config
       ->set('default_css', $values['default_css'])
+      ->set('optimize_css', $values['optimize_css'])
       ->set('force_download', $values['force_download'])
       ->set('base_url', $values['base_url'])
       ->save();

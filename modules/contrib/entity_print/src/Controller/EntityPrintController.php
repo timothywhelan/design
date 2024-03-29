@@ -88,7 +88,8 @@ class EntityPrintController extends ControllerBase {
     $print_engine = $this->pluginManager->createSelectedInstance($export_type);
     return (new StreamedResponse(function () use ($entity, $print_engine, $config) {
       // The Print is sent straight to the browser.
-      $this->printBuilder->deliverPrintable([$entity], $print_engine, $config->get('force_download'), $config->get('default_css'));
+      $this->printBuilder->deliverPrintable([$entity], $print_engine, $config->get('force_download'), $config->get('default_css'), $config->get('optimize_css'));
+
     }))->send();
   }
 

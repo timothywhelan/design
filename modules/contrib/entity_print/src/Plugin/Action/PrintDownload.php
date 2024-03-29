@@ -115,9 +115,10 @@ class PrintDownload extends ConfigurableActionBase implements ContainerFactoryPl
    * {@inheritdoc}
    */
   public function executeMultiple(array $entities) {
+    $optimize_css = \Drupal::config('entity_print.settings')->get('optimize_css');
     try {
-      (new StreamedResponse(function () use ($entities) {
-        $this->printBuilder->deliverPrintable($entities, $this->entityPrintPluginManager->createSelectedInstance($this->configuration['export_type']), TRUE);
+      (new StreamedResponse(function () use ($entities, $optimize_css) {
+        $this->printBuilder->deliverPrintable($entities, $this->entityPrintPluginManager->createSelectedInstance($this->configuration['export_type']), TRUE, TRUE,  $optimize_css);
       }))->send();
     }
     catch (PrintEngineException $e) {

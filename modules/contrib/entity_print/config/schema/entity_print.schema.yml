@@ -5,6 +5,9 @@ entity_print.settings:
     default_css:
       type: boolean
       label: 'Enable the default CSS.'
+    optimize_css:
+      type: boolean
+      label: 'Use optimized/compressed CSS.'
     force_download:
       type: boolean
       label: 'Force download of Print'

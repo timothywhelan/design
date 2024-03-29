@@ -90,6 +90,7 @@ class EntityPrintAdminTest extends WebDriverTestBase {
 
     $this->submitForm([
       'default_css' => 0,
+      'optimize_css' => 0,
       'force_download' => 0,
       'pdf' => 'testprintengine',
       'word_docx' => 'test_word_print_engine',

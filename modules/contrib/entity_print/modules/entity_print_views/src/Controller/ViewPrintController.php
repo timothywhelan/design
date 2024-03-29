@@ -115,7 +115,7 @@ class ViewPrintController extends ControllerBase {
 
     return (new StreamedResponse(function () use ($view, $print_engine, $config) {
       // The printed document is sent straight to the browser.
-      $this->printBuilder->deliverPrintable([$view], $print_engine, $config->get('force_download'), $config->get('default_css'));
+      $this->printBuilder->deliverPrintable([$view], $print_engine, $config->get('force_download'), $config->get('default_css'), $config->get('optimize_css'));
     }))->send();
   }
 

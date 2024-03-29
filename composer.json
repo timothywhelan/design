@@ -71,6 +71,11 @@
         }
     },
     "extra": {
+        "patches": {
+            "drupal/entity_print": {
+                "Issue #2971822": "https://www.drupal.org/files/issues/2020-10-27/entity_print-allow_choose_optimize_css-14.patch"
+            }
+        },
         "drupal-scaffold": {
             "locations": {
                 "web-root": "./"

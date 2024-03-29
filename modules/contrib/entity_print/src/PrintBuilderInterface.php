@@ -21,11 +21,13 @@ interface PrintBuilderInterface {
    *   (optional) TRUE to try and force the document download.
    * @param bool $use_default_css
    *   (optional) TRUE if you want the default CSS included, otherwise FALSE.
+   * @param bool $optimize_css
+   *   (optional) TRUE to optimize the CSS otherwise FALSE.
    *
    * @return string
    *   FALSE or the Print content will be sent to the browser.
    */
-  public function deliverPrintable(array $entities, PrintEngineInterface $print_engine, $force_download = FALSE, $use_default_css = TRUE);
+  public function deliverPrintable(array $entities, PrintEngineInterface $print_engine, $force_download = FALSE, $use_default_css = TRUE, $optimize_css = TRUE);
 
   /**
    * Get a HTML version of the entity as used for the Print rendering.
@@ -35,7 +37,7 @@ interface PrintBuilderInterface {
    * @param bool $use_default_css
    *   TRUE if you want the default CSS included, otherwise FALSE.
    * @param bool $optimize_css
-   *   TRUE if you the CSS should be compressed otherwise FALSE.
+   *   (optional) TRUE to optimize the CSS otherwise FALSE.
    *
    * @return string
    *   The rendered HTML for the entity, the same as what is used for the Print.
@@ -61,10 +63,12 @@ interface PrintBuilderInterface {
    *   (optional) The filename or empty to have one generated.
    * @param bool $use_default_css
    *   (optional) TRUE if you want the default CSS included, otherwise FALSE.
+   * @param bool $optimize_css
+   *  (optional) TRUE to optimise the CSS otherwise FALSE.
    *
    * @return string
    *   FALSE or the URI to the file. E.g. public://my-file.pdf.
    */
-  public function savePrintable(array $entities, PrintEngineInterface $print_engine, $scheme = 'public', $filename = '', $use_default_css = TRUE);
+  public function savePrintable(array $entities, PrintEngineInterface $print_engine, $scheme = 'public', $filename = '', $use_default_css = TRUE, $optimize_css = TRUE);
 
 }
