@@ -1,9 +1,4 @@
 <?php
-/**
- * @package dompdf
- * @link    https://github.com/dompdf/dompdf
- * @license http://www.gnu.org/copyleft/lesser.html GNU Lesser General Public License
- */
 namespace Dompdf;
 
 class Options
@@ -103,7 +98,7 @@ class Options
      * North America standard is "letter"; other countries generally "a4"
      * @see \Dompdf\Adapter\CPDF::PAPER_SIZES for valid sizes
      *
-     * @var string|float[]
+     * @var string
      */
     private $defaultPaperSize = "letter";
 
@@ -789,10 +784,10 @@ class Options
     }
 
     /**
-     * @param string|float[] $defaultPaperSize
+     * @param string $defaultPaperSize
      * @return $this
      */
-    public function setDefaultPaperSize($defaultPaperSize): self
+    public function setDefaultPaperSize($defaultPaperSize)
     {
         $this->defaultPaperSize = $defaultPaperSize;
         return $this;
@@ -802,14 +797,14 @@ class Options
      * @param string $defaultPaperOrientation
      * @return $this
      */
-    public function setDefaultPaperOrientation(string $defaultPaperOrientation): self
+    public function setDefaultPaperOrientation($defaultPaperOrientation)
     {
         $this->defaultPaperOrientation = $defaultPaperOrientation;
         return $this;
     }
 
     /**
-     * @return string|float[]
+     * @return string
      */
     public function getDefaultPaperSize()
     {
@@ -819,7 +814,7 @@ class Options
     /**
      * @return string
      */
-    public function getDefaultPaperOrientation(): string
+    public function getDefaultPaperOrientation()
     {
         return $this->defaultPaperOrientation;
     }

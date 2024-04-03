@@ -1,7 +1,8 @@
 <?php
 /**
  * @package dompdf
- * @link    https://github.com/dompdf/dompdf
+ * @link    http://dompdf.github.com/
+ * @author  Benj Carson <benjcarson@digitaljunkies.ca>
  * @license http://www.gnu.org/copyleft/lesser.html GNU Lesser General Public License
  */
 namespace Dompdf\FrameDecorator;
@@ -13,6 +14,7 @@ use Dompdf\LineBox;
 /**
  * Decorates frames for block layout
  *
+ * @access  private
  * @package dompdf
  */
 class Block extends AbstractFrameDecorator
