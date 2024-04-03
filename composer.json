@@ -53,7 +53,9 @@
         "drupal/user_csv_import": "^2.0",
         "drupal/views_bulk_operations": "^4.0",
         "drupal/webform": "^6.1",
-        "drupal/youtube": "^2.0"
+        "drupal/youtube": "^2.0",
+        "mikehaertl/phpwkhtmltopdf": "~2.1",
+        "tecnickcom/tcpdf": "~6"
     },
     "conflict": {
         "drupal/drupal": "*"
