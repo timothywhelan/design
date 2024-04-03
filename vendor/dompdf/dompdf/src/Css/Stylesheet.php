@@ -1,7 +1,10 @@
 <?php
 /**
  * @package dompdf
- * @link    https://github.com/dompdf/dompdf
+ * @link    http://dompdf.github.com/
+ * @author  Benj Carson <benjcarson@digitaljunkies.ca>
+ * @author  Helmut Tischer <htischer@weihenstephan.org>
+ * @author  Fabien Ménager <fabien.menager@gmail.com>
  * @license http://www.gnu.org/copyleft/lesser.html GNU Lesser General Public License
  */
 namespace Dompdf\Css;
@@ -86,7 +89,7 @@ class Stylesheet
     /**
      * Array of currently defined styles
      *
-     * @var Style[][]
+     * @var Style[]
      */
     private $_styles;
 
@@ -368,41 +371,42 @@ class Stylesheet
     }
 
     /**
-     * @link https://www.w3.org/TR/CSS21/cascade.html#specificity
+     * @link http://www.w3.org/TR/CSS21/cascade.html#specificity
      *
      * @param string $selector
-     * @param int    $origin
+     * @param int $origin :
      *    - Stylesheet::ORIG_UA: user agent style sheet
      *    - Stylesheet::ORIG_USER: user style sheet
      *    - Stylesheet::ORIG_AUTHOR: author style sheet
      *
      * @return int
      */
-    protected function specificity(string $selector, int $origin = self::ORIG_AUTHOR): int
+    private function _specificity($selector, $origin = self::ORIG_AUTHOR)
     {
+        // http://www.w3.org/TR/CSS21/cascade.html#specificity
+        // ignoring the ":" pseudoclass modifiers
+        // also ignored in _css_selector_to_xpath
+
         $a = ($selector === "!attr") ? 1 : 0;
 
         $b = min(mb_substr_count($selector, "#"), 255);
 
         $c = min(mb_substr_count($selector, ".") +
-            mb_substr_count($selector, "[") +
-            mb_substr_count($selector, ":") -
-            2 * mb_substr_count($selector, "::"), 255);
+            mb_substr_count($selector, "["), 255);
 
         $d = min(mb_substr_count($selector, " ") +
             mb_substr_count($selector, ">") +
             mb_substr_count($selector, "+") +
             mb_substr_count($selector, "~") -
-            mb_substr_count($selector, "~=") +
-            mb_substr_count($selector, "::"), 255);
+            mb_substr_count($selector, "~="), 255);
 
         //If a normal element name is at the beginning of the string,
         //a leading whitespace might have been removed on whitespace collapsing and removal
         //therefore there might be one whitespace less as selected element names
         //this can lead to a too small specificity
-        //see selectorToXpath
+        //see _css_selector_to_xpath
 
-        if (!in_array($selector[0], [" ", ">", ".", "#", "+", "~", ":", "["], true) && $selector !== "*") {
+        if (!in_array($selector[0], [" ", ">", ".", "#", "+", "~", ":", "["]) && $selector !== "*") {
             $d++;
         }
 
@@ -410,7 +414,7 @@ class Stylesheet
             /*DEBUGCSS*/
             print "<pre>\n";
             /*DEBUGCSS*/
-            printf("specificity(): 0x%08x \"%s\"\n", self::$_stylesheet_origins[$origin] + (($a << 24) | ($b << 16) | ($c << 8) | ($d)), $selector);
+            printf("_specificity(): 0x%08x \"%s\"\n", self::$_stylesheet_origins[$origin] + (($a << 24) | ($b << 16) | ($c << 8) | ($d)), $selector);
             /*DEBUGCSS*/
             print "</pre>";
         }
@@ -422,35 +426,45 @@ class Stylesheet
      * Converts a CSS selector to an XPath query.
      *
      * @param string $selector
-     * @param bool   $firstPass
+     * @param bool $first_pass
      *
-     * @return array|null
+     * @throws Exception
+     * @return array
      */
-    protected function selectorToXpath(string $selector, bool $firstPass = false): ?array
+    private function _css_selector_to_xpath(string $selector, bool $first_pass = false): array
     {
         // Collapse white space and strip whitespace around delimiters
         //$search = array("/\\s+/", "/\\s+([.>#+:])\\s+/");
         //$replace = array(" ", "\\1");
         //$selector = preg_replace($search, $replace, trim($selector));
 
-        // Initial query, always expanded to // below (non-absolute)
-        $query = "/";
+        // Initial query (non-absolute)
+        $query = "//";
 
         // Will contain :before and :after
         $pseudo_elements = [];
+
+        // Will contain :link, etc
+        $pseudo_classes = [];
 
         // Parse the selector
         //$s = preg_split("/([ :>.#+])/", $selector, -1, PREG_SPLIT_DELIM_CAPTURE);
 
         $delimiters = [" ", ">", ".", "#", "+", "~", ":", "[", "("];
 
+        // Add an implicit * at the beginning of the selector
+        // if it begins with an attribute selector
+        if ($selector[0] === "[") {
+            $selector = "*$selector";
+        }
+
         // Add an implicit space at the beginning of the selector if there is no
         // delimiter there already.
-        if (!in_array($selector[0], $delimiters, true)) {
+        if (!in_array($selector[0], $delimiters)) {
             $selector = " $selector";
         }
 
-        $name = "*";
+        $tok = "";
         $len = mb_strlen($selector);
         $i = 0;
 
@@ -468,7 +482,7 @@ class Stylesheet
                 $c = $selector[$i];
                 $c_prev = $selector[$i - 1];
 
-                if (!$in_func && !$in_attr && in_array($c, $delimiters, true) && !($c === $c_prev && $c === ":")) {
+                if (!$in_func && !$in_attr && in_array($c, $delimiters) && !(($c == $c_prev) == ":")) {
                     break;
                 }
 
@@ -495,56 +509,35 @@ class Stylesheet
 
                 case " ":
                 case ">":
-                    // All elements matching the next token that are descendants
-                    // or children of the current token
-                    // https://www.w3.org/TR/selectors-3/#descendant-combinators
-                    // https://www.w3.org/TR/selectors-3/#child-combinators
+                    // All elements matching the next token that are direct children of
+                    // the current token
                     $expr = $s === " " ? "descendant" : "child";
 
-                    // Tag names are case-insensitive
-                    $name = $tok === "" ? "*" : strtolower($tok);
-                    $query .= "/$expr::$name";
-                    break;
-
-                case "+":
-                    // Next-sibling combinator
-                    // https://www.w3.org/TR/selectors-3/#sibling-combinators
-
-                    // Tag names are case-insensitive
-                    $name = $tok === "" ? "*" : strtolower($tok);
-                    $query .= "/following-sibling::*[1]";
-
-                    if ($name !== "*") {
-                        $query .= "[name() = '$name']";
-                    }
-                    break;
-
-                case "~":
-                    // Subsequent-sibling combinator
-                    // https://www.w3.org/TR/selectors-3/#sibling-combinators
-
-                    // Tag names are case-insensitive
-                    $name = $tok === "" ? "*" : strtolower($tok);
-                    $query .= "/following-sibling::$name";
-                    break;
-
-                case "#":
-                    // All elements matching the current token with id equal
-                    // to the _next_ token
-                    // https://www.w3.org/TR/selectors-3/#id-selectors
-                    if ($query === "/") {
-                        $query .= "/*";
+                    if (mb_substr($query, -1, 1) !== "/") {
+                        $query .= "/";
                     }
 
-                    $query .= "[@id=\"$tok\"]";
+                    // Tag names are case-insensitive
+                    $tok = strtolower($tok);
+
+                    if (!$tok) {
+                        $tok = "*";
+                    }
+
+                    $query .= "$expr::$tok";
+                    $tok = "";
                     break;
 
                 case ".":
-                    // All elements matching the current token with a class
-                    // equal to the _next_ token
-                    // https://www.w3.org/TR/selectors-3/#class-html
-                    if ($query === "/") {
-                        $query .= "/*";
+                case "#":
+                    // All elements matching the current token with a class/id equal to
+                    // the _next_ token.
+
+                    $attr = $s === "." ? "class" : "id";
+
+                    // empty class/id == *
+                    if (mb_substr($query, -1, 1) === "/") {
+                        $query .= "*";
                     }
 
                     // Match multiple classes: $tok contains the current selected
@@ -554,12 +547,39 @@ class Stylesheet
                     // This doesn't work because libxml only supports XPath 1.0...
                     //$query .= "[matches(@$attr,\"^{$tok}\$|^{$tok}[ ]+|[ ]+{$tok}\$|[ ]+{$tok}[ ]+\")]";
 
-                    $query .= "[contains(concat(' ', normalize-space(@class), ' '), concat(' ', '$tok', ' '))]";
+                    $query .= "[contains(concat(' ', normalize-space(@$attr), ' '), concat(' ', '$tok', ' '))]";
+                    $tok = "";
+                    break;
+
+                case "+":
+                case "~":
+                    // Next-sibling combinator
+                    // Subsequent-sibling combinator
+                    // https://www.w3.org/TR/selectors-3/#sibling-combinators
+                    if (mb_substr($query, -1, 1) !== "/") {
+                        $query .= "/";
+                    }
+
+                    // Tag names are case-insensitive
+                    $tok = strtolower($tok);
+
+                    if (!$tok) {
+                        $tok = "*";
+                    }
+
+                    $query .= "following-sibling::$tok";
+
+                    if ($s === "+") {
+                        $query .= "[1]";
+                    }
+
+                    $tok = "";
                     break;
 
                 case ":":
-                    if ($query === "/") {
-                        $query .= "/*";
+                    $i2 = $i - strlen($tok) - 2; // the char before ":"
+                    if (($i2 < 0 || !isset($selector[$i2]) || (in_array($selector[$i2], $delimiters) && $selector[$i2] != ":")) && substr($query, -1) != "*") {
+                        $query .= "*";
                     }
 
                     $last = false;
@@ -567,75 +587,98 @@ class Stylesheet
                     // Pseudo-classes
                     switch ($tok) {
 
-                        case "root":
-                            $query .= "[not(parent::*)]";
-                            break;
-
                         case "first-child":
                             $query .= "[not(preceding-sibling::*)]";
+                            $tok = "";
                             break;
 
                         case "last-child":
                             $query .= "[not(following-sibling::*)]";
+                            $tok = "";
                             break;
 
-                        case "only-child":
-                            $query .= "[not(preceding-sibling::*) and not(following-sibling::*)]";
-                            break;
-
-                        // https://www.w3.org/TR/selectors-3/#nth-child-pseudo
-                        /** @noinspection PhpMissingBreakStatementInspection */
-                        case "nth-last-child":
-                            $last = true;
-                        case "nth-child":
-                            $p = $i + 1;
-                            $nth = trim(mb_substr($selector, $p, strpos($selector, ")", $i) - $p));
-                            $position = $last
-                                ? "(count(following-sibling::*) + 1)"
-                                : "(count(preceding-sibling::*) + 1)";
-
-                            $condition = $this->selectorAnPlusB($nth, $position);
-                            $query .= "[$condition]";
-                            break;
-
-                        // TODO: `*:first-of-type`, `*:nth-of-type` etc.
-                        // (without fixed element name) are treated equivalent
-                        // to their `:*-child` counterparts here. They might
-                        // not be properly expressible in XPath 1.0
                         case "first-of-type":
-                            $query .= "[not(preceding-sibling::$name)]";
+                            $query .= "[position() = 1]";
+                            $tok = "";
                             break;
 
                         case "last-of-type":
-                            $query .= "[not(following-sibling::$name)]";
+                            $query .= "[position() = last()]";
+                            $tok = "";
                             break;
 
-                        case "only-of-type":
-                            $query .= "[not(preceding-sibling::$name) and not(following-sibling::$name)]";
-                            break;
-
-                        // https://www.w3.org/TR/selectors-3/#nth-of-type-pseudo
+                        // an+b, n, odd, and even
                         /** @noinspection PhpMissingBreakStatementInspection */
                         case "nth-last-of-type":
                             $last = true;
                         case "nth-of-type":
+                            //FIXME: this fix-up is pretty ugly, would parsing the selector in reverse work better generally?
+                            $descendant_delimeter = strrpos($query, "::");
+                            $isChild = substr($query, $descendant_delimeter-5, 5) == "child";
+                            $el = substr($query, $descendant_delimeter+2);
+                            $query = substr($query, 0, strrpos($query, "/")) . ($isChild ? "/" : "//") . $el;
+
+                            $pseudo_classes[$tok] = true;
                             $p = $i + 1;
                             $nth = trim(mb_substr($selector, $p, strpos($selector, ")", $i) - $p));
-                            $position = $last
-                                ? "(count(following-sibling::$name) + 1)"
-                                : "(count(preceding-sibling::$name) + 1)";
+                            $position = $last ? "(last()-position()+1)" : "position()";
 
-                            $condition = $this->selectorAnPlusB($nth, $position);
+                            // 1
+                            if (preg_match("/^\d+$/", $nth)) {
+                                $condition = "$position = $nth";
+                            } // odd
+                            elseif ($nth === "odd") {
+                                $condition = "($position mod 2) = 1";
+                            } // even
+                            elseif ($nth === "even") {
+                                $condition = "($position mod 2) = 0";
+                            } // an+b
+                            else {
+                                $condition = $this->_selector_an_plus_b($nth, $last);
+                            }
+
                             $query .= "[$condition]";
+                            $tok = "";
+                            break;
+                        /** @noinspection PhpMissingBreakStatementInspection */
+                        case "nth-last-child":
+                            $last = true;
+                        case "nth-child":
+                            //FIXME: this fix-up is pretty ugly, would parsing the selector in reverse work better generally?
+                            $descendant_delimeter = strrpos($query, "::");
+                            $isChild = substr($query, $descendant_delimeter-5, 5) == "child";
+                            $el = substr($query, $descendant_delimeter+2);
+                            $query = substr($query, 0, strrpos($query, "/")) . ($isChild ? "/" : "//") . "*";
+
+                            $pseudo_classes[$tok] = true;
+                            $p = $i + 1;
+                            $nth = trim(mb_substr($selector, $p, strpos($selector, ")", $i) - $p));
+                            $position = $last ? "(last()-position()+1)" : "position()";
+
+                            // 1
+                            if (preg_match("/^\d+$/", $nth)) {
+                                $condition = "$position = $nth";
+                            } // odd
+                            elseif ($nth === "odd") {
+                                $condition = "($position mod 2) = 1";
+                            } // even
+                            elseif ($nth === "even") {
+                                $condition = "($position mod 2) = 0";
+                            } // an+b
+                            else {
+                                $condition = $this->_selector_an_plus_b($nth, $last);
+                            }
+
+                            $query .= "[$condition]";
+                            if ($el != "*") {
+                                $query .= "[name() = '$el']";
+                            }
+                            $tok = "";
                             break;
 
-                        // https://www.w3.org/TR/selectors-4/#empty-pseudo
-                        case "empty":
-                            $query .= "[not(*) and not(normalize-space())]";
-                            break;
-
-                        // TODO: bit of a hack attempt at matches support, currently only matches against elements
+                        //TODO: bit of a hack attempt at matches support, currently only matches against elements
                         case "matches":
+                            $pseudo_classes[$tok] = true;
                             $p = $i + 1;
                             $matchList = trim(mb_substr($selector, $p, strpos($selector, ")", $i) - $p));
 
@@ -646,73 +689,74 @@ class Stylesheet
                             }
 
                             $query .= "[" . implode(" or ", $elements) . "]";
+                            $tok = "";
                             break;
 
-                        // https://www.w3.org/TR/selectors-3/#UIstates
-                        case "disabled":
-                        case "checked":
-                            $query .= "[@$tok]";
-                            break;
-
-                        case "enabled":
-                            $query .= "[not(@disabled)]";
-                            break;
-
-                        // https://www.w3.org/TR/selectors-3/#dynamic-pseudos
-                        // https://www.w3.org/TR/selectors-4/#the-any-link-pseudo
                         case "link":
-                        case "any-link":
                             $query .= "[@href]";
+                            $tok = "";
                             break;
 
-                        // N/A
-                        case "visited":
-                        case "hover":
-                        case "active":
-                        case "focus":
-                        case "focus-visible":
-                        case "focus-within":
-                            $query .= "[false()]";
-                            break;
-
-                        // https://www.w3.org/TR/selectors-3/#first-line
-                        // https://www.w3.org/TR/selectors-3/#first-letter
                         case "first-line":
                         case ":first-line":
                         case "first-letter":
                         case ":first-letter":
                             // TODO
-                            $el = ltrim($tok, ":");
+                            $el = trim($tok, ":");
                             $pseudo_elements[$el] = true;
                             break;
 
-                        // https://www.w3.org/TR/selectors-3/#gen-content
+                            // N/A
+                        case "focus":
+                        case "active":
+                        case "hover":
+                        case "visited":
+                            $query .= "[false()]";
+                            $tok = "";
+                            break;
+
+                        /* Pseudo-elements */
                         case "before":
                         case ":before":
                         case "after":
                         case ":after":
-                            $pos = ltrim($tok, ":");
+                            $pos = trim($tok, ":");
                             $pseudo_elements[$pos] = true;
-                            if (!$firstPass) {
+                            if (!$first_pass) {
                                 $query .= "/*[@$pos]";
                             }
+
+                            $tok = "";
                             break;
 
-                        // Invalid or unsupported pseudo-class or pseudo-element
+                        case "empty":
+                            $query .= "[not(*) and not(normalize-space())]";
+                            $tok = "";
+                            break;
+
+                        case "disabled":
+                        case "checked":
+                            $query .= "[@$tok]";
+                            $tok = "";
+                            break;
+
+                        case "enabled":
+                            $query .= "[not(@disabled)]";
+                            $tok = "";
+                            break;
+
+                        // the selector is not handled, until we support all possible selectors force an empty set (silent failure)
                         default:
-                            return null;
+                            $query = "/../.."; // go up two levels because generated content starts on the body element
+                            $tok = "";
+                            break;
                     }
 
                     break;
 
                 case "[":
-                    // Attribute selectors.  All with an attribute matching the
-                    // following token(s)
+                    // Attribute selectors.  All with an attribute matching the following token(s)
                     // https://www.w3.org/TR/selectors-3/#attribute-selectors
-                    if ($query === "/") {
-                        $query .= "/*";
-                    }
-
                     $attr_delimiters = ["=", "]", "~", "|", "$", "^", "*"];
                     $tok_len = mb_strlen($tok);
                     $j = 0;
@@ -722,34 +766,23 @@ class Stylesheet
                     $value = "";
 
                     while ($j < $tok_len) {
-                        if (in_array($tok[$j], $attr_delimiters, true)) {
+                        if (in_array($tok[$j], $attr_delimiters)) {
                             break;
                         }
                         $attr .= $tok[$j++];
-                    }
-
-                    if ($attr === "") {
-                        // Selector invalid: Missing attribute name
-                        return null;
-                    }
-
-                    if (!isset($tok[$j])) {
-                        // Selector invalid: Missing ] or operator
-                        return null;
                     }
 
                     switch ($tok[$j]) {
 
                         case "~":
                         case "|":
-                        case "^":
                         case "$":
+                        case "^":
                         case "*":
                             $op .= $tok[$j++];
 
-                            if (!isset($tok[$j]) || $tok[$j] !== "=") {
-                                // Selector invalid: Incomplete attribute operator
-                                return null;
+                            if ($tok[$j] !== "=") {
+                                throw new Exception("Invalid CSS selector syntax: invalid attribute selector: $selector");
                             }
 
                             $op .= $tok[$j];
@@ -762,7 +795,7 @@ class Stylesheet
                     }
 
                     // Read the attribute value, if required
-                    if ($op !== "") {
+                    if ($op != "") {
                         $j++;
                         while ($j < $tok_len) {
                             if ($tok[$j] === "]") {
@@ -772,9 +805,8 @@ class Stylesheet
                         }
                     }
 
-                    if (!isset($tok[$j])) {
-                        // Selector invalid: Missing ]
-                        return null;
+                    if ($attr == "") {
+                        throw new Exception("Invalid CSS selector syntax: missing attribute name");
                     }
 
                     $value = trim($value, "\"'");
@@ -792,9 +824,9 @@ class Stylesheet
                         case "~=":
                             // FIXME: this will break if $value contains quoted strings
                             // (e.g. [type~="a b c" "d e f"])
-                            $query .= $value !== "" && !preg_match("/\s+/", $value)
-                                ? "[contains(concat(' ', normalize-space(@$attr), ' '), concat(' ', \"$value\", ' '))]"
-                                : "[false()]";
+                            // FIXME: Don't match anything if value contains
+                            // whitespace or is the empty string
+                            $query .= "[contains(concat(' ', normalize-space(@$attr), ' '), concat(' ', '$value', ' '))]";
                             break;
 
                         case "|=":
@@ -808,57 +840,63 @@ class Stylesheet
                             $query = rtrim($query, " or ") . "]";
                             break;
 
-                        case "^=":
-                            $query .= $value !== ""
-                                ? "[starts-with(@$attr,\"$value\")]"
-                                : "[false()]";
+                        case "$=":
+                            $query .= "[substring(@$attr, string-length(@$attr)-" . (strlen($value) - 1) . ")=\"$value\"]";
                             break;
 
-                        case "$=":
-                            $query .= $value !== ""
-                                ? "[substring(@$attr, string-length(@$attr)-" . (strlen($value) - 1) . ")=\"$value\"]"
-                                : "[false()]";
+                        case "^=":
+                            $query .= "[starts-with(@$attr,\"$value\")]";
                             break;
 
                         case "*=":
-                            $query .= $value !== ""
-                                ? "[contains(@$attr,\"$value\")]"
-                                : "[false()]";
+                            $query .= "[contains(@$attr,\"$value\")]";
                             break;
                     }
 
                     break;
             }
         }
+        $i++;
 
-        return ["query" => $query, "pseudo_elements" => $pseudo_elements];
+//       case ":":
+//         // Pseudo selectors: ignore for now.  Partially handled directly
+//         // below.
+
+//         // Skip until the next special character, leaving the token as-is
+//         while ( $i < $len ) {
+//           if ( in_array($selector[$i], $delimiters) )
+//             break;
+//           $i++;
+//         }
+//         break;
+
+//       default:
+//         // Add the character to the token
+//         $tok .= $selector[$i++];
+//         break;
+//       }
+
+//    }
+
+
+        // Trim the trailing '/' from the query
+        if (mb_strlen($query) > 2) {
+            $query = rtrim($query, "/");
+        }
+
+        return ['query' => $query, 'pseudo_elements' => $pseudo_elements];
     }
 
     /**
-     * Parse an `nth-child` expression of the form `an+b`, `odd`, or `even`.
+     * https://github.com/tenderlove/nokogiri/blob/master/lib/nokogiri/css/xpath_visitor.rb
      *
      * @param string $expr
-     * @param string $position
+     * @param bool $last
      *
      * @return string
-     *
-     * @link https://www.w3.org/TR/selectors-3/#nth-child-pseudo
      */
-    protected function selectorAnPlusB(string $expr, string $position): string
+    protected function _selector_an_plus_b(string $expr, bool $last = false): string
     {
-        // odd
-        if ($expr === "odd") {
-            return "($position mod 2) = 1";
-        } // even
-        elseif ($expr === "even") {
-            return "($position mod 2) = 0";
-        } // b
-        elseif (preg_match("/^\d+$/", $expr)) {
-            return "$position = $expr";
-        }
-
-        // an+b
-        // https://github.com/tenderlove/nokogiri/blob/master/lib/nokogiri/css/xpath_visitor.rb
         $expr = preg_replace("/\s/", "", $expr);
         if (!preg_match("/^(?P<a>-?[0-9]*)?n(?P<b>[-+]?[0-9]+)?$/", $expr, $matches)) {
             return "false()";
@@ -867,7 +905,9 @@ class Stylesheet
         $a = (isset($matches["a"]) && $matches["a"] !== "") ? ($matches["a"] !== "-" ? intval($matches["a"]) : -1) : 1;
         $b = (isset($matches["b"]) && $matches["b"] !== "") ? intval($matches["b"]) : 0;
 
-        if ($b === 0) {
+        $position = $last ? "(last()-position()+1)" : "position()";
+
+        if ($b == 0) {
             return "($position mod $a) = 0";
         } else {
             $compare = ($a < 0) ? "<=" : ">=";
@@ -886,7 +926,7 @@ class Stylesheet
      * {@link FrameTree}.  Aside from parsing CSS, this is the main purpose
      * of this class.
      *
-     * @param FrameTree $tree
+     * @param \Dompdf\Frame\FrameTree $tree
      */
     function apply_styles(FrameTree $tree)
     {
@@ -908,28 +948,26 @@ class Stylesheet
 
         // Add generated content
         foreach ($this->_styles as $selector => $selector_styles) {
-            if (strpos($selector, ":before") === false && strpos($selector, ":after") === false) {
-                continue;
-            }
-
-            $query = $this->selectorToXpath($selector, true);
-            if ($query === null) {
-                Helpers::record_warnings(E_USER_WARNING, "The CSS selector '$selector' is not valid", __FILE__, __LINE__);
-                continue;
-            }
-
-            // Retrieve the nodes, limit to body for generated content
-            // TODO: If we use a context node can we remove the leading dot?
-            $nodes = @$xp->query('.' . $query["query"]);
-            if ($nodes === false) {
-                Helpers::record_warnings(E_USER_WARNING, "The CSS selector '$selector' is not valid", __FILE__, __LINE__);
-                continue;
-            }
-
+            /** @var Style $style */
             foreach ($selector_styles as $style) {
+                if (strpos($selector, ":before") === false && strpos($selector, ":after") === false) {
+                    continue;
+                }
+
+                $query = $this->_css_selector_to_xpath($selector, true);
+
+                // Retrieve the nodes, limit to body for generated content
+                //TODO: If we use a context node can we remove the leading dot?
+                $nodes = @$xp->query('.' . $query["query"]);
+                if ($nodes === false) {
+                    Helpers::record_warnings(E_USER_WARNING, "The CSS selector '$selector' is not valid", __FILE__, __LINE__);
+                    continue;
+                }
+
+                /** @var \DOMElement $node */
                 foreach ($nodes as $node) {
                     // Only DOMElements get styles
-                    if (!($node instanceof DOMElement)) {
+                    if ($node->nodeType != XML_ELEMENT_NODE) {
                         continue;
                     }
 
@@ -965,25 +1003,23 @@ class Stylesheet
 
         // Apply all styles in stylesheet
         foreach ($this->_styles as $selector => $selector_styles) {
-            $query = $this->selectorToXpath($selector);
-            if ($query === null) {
-                Helpers::record_warnings(E_USER_WARNING, "The CSS selector '$selector' is not valid", __FILE__, __LINE__);
-                continue;
-            }
-
-            // Retrieve the nodes
-            $nodes = @$xp->query($query["query"]);
-            if ($nodes === false) {
-                Helpers::record_warnings(E_USER_WARNING, "The CSS selector '$selector' is not valid", __FILE__, __LINE__);
-                continue;
-            }
-
+            /** @var Style $style */
             foreach ($selector_styles as $style) {
-                $spec = $this->specificity($selector, $style->get_origin());
+                $query = $this->_css_selector_to_xpath($selector);
+
+                // Retrieve the nodes
+                $nodes = @$xp->query($query["query"]);
+                if ($nodes === false) {
+                    Helpers::record_warnings(E_USER_WARNING, "The CSS selector '$selector' is not valid", __FILE__, __LINE__);
+                    continue;
+                }
+
+                $spec = $this->_specificity($selector, $style->get_origin());
 
                 foreach ($nodes as $node) {
+                    // Retrieve the node id
                     // Only DOMElements get styles
-                    if (!($node instanceof DOMElement)) {
+                    if ($node->nodeType != XML_ELEMENT_NODE) {
                         continue;
                     }
 
@@ -1047,7 +1083,7 @@ class Stylesheet
                 // Destroy CSS comments
                 $str = preg_replace("'/\*.*?\*/'si", "", $str);
 
-                $spec = $this->specificity("!attr", self::ORIG_AUTHOR);
+                $spec = $this->_specificity("!attr", self::ORIG_AUTHOR);
                 $styles[$id][$spec][] = $this->_parse_properties($str);
             }
 
@@ -1445,7 +1481,7 @@ class Stylesheet
     {
         $descriptors = $this->_parse_properties($str);
 
-        preg_match_all("/(url|local)\s*\(\s*[\"\']?([^\"\'\)]+)[\"\']?\s*\)\s*(format\s*\(\s*[\"\']?([^\"\'\)]+)[\"\']?\s*\))?/i", $descriptors->src, $src);
+        preg_match_all("/(url|local)\s*\([\"\']?([^\"\'\)]+)[\"\']?\)\s*(format\s*\([\"\']?([^\"\'\)]+)[\"\']?\))?/i", $descriptors->src, $src);
 
         $valid_sources = [];
         foreach ($src[0] as $i => $value) {
@@ -1581,7 +1617,7 @@ class Stylesheet
             foreach ($selectors as $selector) {
                 $selector = trim($selector);
 
-                if ($selector === "") {
+                if ($selector == "") {
                     if ($DEBUGCSS) print '#empty#';
                     continue;
                 }
@@ -1645,6 +1681,7 @@ class Stylesheet
     {
         $str = "";
         foreach ($this->_styles as $selector => $selector_styles) {
+            /** @var Style $style */
             foreach ($selector_styles as $style) {
                 $str .= "$selector => " . $style->__toString() . "\n";
             }
