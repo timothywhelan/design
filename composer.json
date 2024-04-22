@@ -36,6 +36,7 @@
         "drupal/field_group": "^3.2",
         "drupal/focal_point": "^2.0",
         "drupal/google_analytics": "^4.0@alpha",
+        "drupal/google_tag": "^2.0",
         "drupal/honeypot": "^2.0",
         "drupal/inline_entity_form": "^1.0@RC",
         "drupal/jquery_ui_datepicker": "^2.0",
