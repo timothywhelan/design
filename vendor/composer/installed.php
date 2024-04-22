@@ -3,7 +3,7 @@
         'name' => 'drupal/legacy-project',
         'pretty_version' => 'dev-master',
         'version' => 'dev-master',
-        'reference' => '16fc16add0f44d7737fcea3d060b9fad01aae69a',
+        'reference' => '415b73bcc54025ace56705ccd6e7b605d700d504',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -433,6 +433,15 @@
             'aliases' => array(),
             'dev_requirement' => false,
         ),
+        'drupal/google_tag' => array(
+            'pretty_version' => '2.0.4',
+            'version' => '2.0.4.0',
+            'reference' => '2.0.4',
+            'type' => 'drupal-module',
+            'install_path' => __DIR__ . '/../../modules/contrib/google_tag',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
         'drupal/honeypot' => array(
             'pretty_version' => '2.1.3',
             'version' => '2.1.3.0',
@@ -508,7 +517,7 @@
         'drupal/legacy-project' => array(
             'pretty_version' => 'dev-master',
             'version' => 'dev-master',
-            'reference' => '16fc16add0f44d7737fcea3d060b9fad01aae69a',
+            'reference' => '415b73bcc54025ace56705ccd6e7b605d700d504',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
